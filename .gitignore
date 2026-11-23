@@ -1,0 +1,48 @@
+# --- Documentos de trabalho privados (estratégia de candidatura; ficam só na máquina do autor) ---
+CLAUDE.md
+docs/ROADMAP.md
+
+# --- Dados: nunca vão para o Git (ver docs/DATA_SOURCES.md para baixar) ---
+data/
+
+# --- Rasters e vetores pesados soltos fora de data/ ---
+*.tif
+*.tiff
+*.vrt
+*.aux.xml
+*.ovr
+*.zip
+*.7z
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+# exceção: GeoPackages agregados em H3 publicados nos outputs dos projetos
+*.gpkg
+!projects/*/outputs/*.gpkg
+
+# --- Python / Jupyter ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# --- Segredos e configurações locais ---
+.env
+*.env
+.Renviron
+config/*.local.yaml
+
+# --- Quarto ---
+site/_site/
+site/.quarto/
+/.quarto/
+
+# --- Sistema / editores ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

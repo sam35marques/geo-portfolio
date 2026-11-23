@@ -1,0 +1,9 @@
+---
+title: "About"
+---
+
+*Draft — to be reviewed by the author before publishing.*
+
+Geographer and GIS professional with 8+ years of experience in multipurpose cadastre, land regularization (REURB), urban drainage and hydrographic mapping. MSc in land-use scenario modelling; PhD candidate at Unimontes.
+
+I am a GIS analyst who uses Python (GeoPandas, Rasterio, Google Earth Engine), not a software developer. I have studied PostGIS and SQL but have not used them in production.

@@ -1,0 +1,18 @@
+# Torna src/geoportfolio instalável ("pip install -e ."), para que
+# notebooks e scripts de qualquer pasta consigam fazer "import geoportfolio".
+# As dependências ficam no environment.yml (conda), não aqui.
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoportfolio"
+version = "0.1.0"
+description = "Reusable functions for an open, reproducible geospatial portfolio (hazard exposure, H3 aggregation, cartography)."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Samuel Marques" }]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,2 @@
+city,aoi_area_km2,dem_crs_original,dem_crs_output,dem_pixel_m,elev_min_m,elev_max_m,elev_mean_m,dem_coverage_of_aoi_pct
+Montes Claros,3588.05,EPSG:32723,EPSG:31983,12.5,488.0,1079.0,765.3,100.1

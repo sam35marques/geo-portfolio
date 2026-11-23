@@ -1,0 +1,26 @@
+# Site Quarto do portfólio. Pré-visualizar: quarto preview site
+# Gerar: quarto render site  (saída em site/_site, fora do Git)
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Samuel Marques · Geospatial portfolio"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Home
+      - href: projects.qmd
+        text: Projects
+      - href: about.qmd
+        text: About
+      - href: cv.qmd
+        text: CV
+  page-footer:
+    center: "Code: MIT · Text and figures: CC BY 4.0"
+
+format:
+  html:
+    theme: cosmo
+    toc: false
+    lang: en

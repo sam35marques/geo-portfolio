@@ -1,0 +1,42 @@
+# Ambiente conda do portfólio geoespacial.
+# Criar:      mamba env create -f environment.yml
+# Atualizar:  mamba env update -f environment.yml --prune
+# Ativar:     conda activate geoportfolio
+#
+# Só conda-forge: os pacotes geoespaciais (GDAL, PROJ, GEOS) vêm compilados
+# de forma compatível entre si, o que evita os conflitos comuns do pip no Windows.
+name: geoportfolio
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  # --- núcleo geoespacial ---
+  - gdal
+  - geopandas
+  - shapely>=2
+  - pyproj
+  - pyogrio            # leitura/escrita rápida de vetores (GeoPackage) pelo GeoPandas
+  - rasterio
+  - rioxarray
+  - xarray
+  - h3-py>=4           # grade hexagonal H3 (v4); importado como "h3"
+  # --- hidrologia / terreno ---
+  - pysheds
+  - whitebox
+  # --- dados e tabelas ---
+  - numpy
+  - pandas
+  - pyyaml
+  - pdfplumber
+  # --- visualização ---
+  - matplotlib
+  - mapclassify
+  - folium
+  - matplotlib-scalebar   # barra de escala nos mapas estáticos (ver DECISIONS.md)
+  # --- notebooks ---
+  - jupyter
+  - ipykernel
+  - pip
+  - pip:
+      # instala o pacote local src/geoportfolio em modo editável
+      - -e .

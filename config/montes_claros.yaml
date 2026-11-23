@@ -1,0 +1,48 @@
+# Configuração da cidade: Montes Claros (MG).
+# Para rodar o fluxo em outro município, copie este arquivo e troque os valores.
+# Caminhos são relativos à raiz do repositório.
+
+city:
+  name: "Montes Claros"
+  state: "MG"
+  ibge_code: 3143302          # código IBGE do município (7 dígitos)
+
+crs:
+  metric: "EPSG:31983"        # SIRGAS 2000 / UTM 23S — áreas, distâncias, declividade
+  geographic: "EPSG:4326"     # WGS 84 — só para H3 e mapas web
+
+aoi:
+  # Fase 0: AOI provisória = limite municipal do IBGE.
+  # Projeto 1: será substituída pelos setores censitários urbanos 2022 (ver DECISIONS.md).
+  source: "ibge_municipality"
+  buffer_m: 0                 # buffer em metros aplicado à AOI (documentar ao mudar)
+
+h3:
+  resolution: 8               # mesma resolução da Kontur Population
+  resolution_detail: 9
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  dem: "data/raw/dem/alos_palsar/moc_dem.tif"
+  municipality: "data/raw/boundaries/ibge/municipio_3143302.geojson"
+
+sources:
+  # API de malhas do IBGE (limite municipal; GeoJSON em EPSG:4674 / SIRGAS 2000)
+  municipality_url: "https://servicodados.ibge.gov.br/api/v3/malhas/municipios/3143302?formato=application/vnd.geo+json&qualidade=maxima"
+
+dem:
+  nodata: 32767               # valor NoData do arquivo original (UInt16)
+  nominal_resolution_m: 12.5
+  effective_resolution_m: 30  # RTC 12,5 m é reamostrado de MDE ~30 m (a confirmar e documentar)
+
+# --- Limiares (todo limiar arbitrário é parâmetro e entra na sensibilidade) ---
+thresholds:
+  slope_pct_legal: 30                    # Lei 6.766/79
+  slope_classes_embrapa_pct: [0, 3, 8, 20, 45, 75]   # limites inferiores das classes EMBRAPA
+  hand_m: [1, 2, 3, 5]                   # HAND ≤ h (m); principal definido no Projeto 1
+  hand_m_main: null                      # a decidir com o autor (ver DECISIONS.md)
+  stream_accumulation_cells: null        # limiar de área de contribuição; a decidir no Projeto 1
+  open_buildings_confidence: [0.65, 0.70, 0.75]
+  open_buildings_confidence_main: 0.75

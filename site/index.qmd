@@ -1,0 +1,7 @@
+---
+title: "Geospatial analysis for hazard exposure and land change"
+---
+
+GIS analyst and geographer based in Montes Claros, Brazil. I build open, reproducible case studies with Python: hazard exposure, population on H3 grids, land-use scenarios and urban heat.
+
+Case studies are in progress. See [Projects](projects.qmd).
