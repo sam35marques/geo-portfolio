@@ -38,6 +38,8 @@ paths:
   atlas_streams: "data/raw/hydrography/atlas_hidrografico/hidrografia/CORREGOS_URB_MOC.shp"
   atlas_basins: "data/raw/hydrography/atlas_hidrografico/bacias_urbanas/BACIAS_URBANAS_MOC_ZONA_EXP.shp"
   interim_p01: "data/interim/p01"
+  sgb_inundation_2014: "data/raw/hazard/sgb_cprm/suscetibilidade_2014/Inundacao_A.shp"
+  sgb_mass_movement_2014: "data/raw/hazard/sgb_cprm/suscetibilidade_2014/Movimento_de_Massa_A.shp"
 
 terrain:
   dem_main: "glo30"            # MDE principal (DECISIONS 2026-11-24)
@@ -95,6 +97,7 @@ thresholds:
   slope_classes_embrapa_pct: [0, 3, 8, 20, 45, 75]   # limites inferiores das classes EMBRAPA
   hand_m: [1, 2, 3, 5]                   # HAND ≤ h (m); principal definido no Projeto 1
   hand_m_main: 3                         # fixado a priori, antes da validação (DECISIONS 2026-11-24)
-  stream_accumulation_cells: null        # limiar de área de contribuição; a decidir no Projeto 1
+  stream_threshold_km2_main: 2.0         # área de contribuição mínima da drenagem (DECISIONS 2026-11-24)
+  stream_threshold_km2: [1.0, 2.0, 3.0]  # sensibilidade do HAND à rede de drenagem
   open_buildings_confidence: [0.65, 0.70, 0.75]
   open_buildings_confidence_main: 0.75

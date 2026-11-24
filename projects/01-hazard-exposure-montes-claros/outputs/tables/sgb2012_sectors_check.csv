@@ -1,0 +1,5 @@
+sector,place,type,cells,hand_median_m,pct_hand_le_3m,slope_median_pct,slope_max_pct,pct_slope_ge_30
+MG_MC_SR_01_CPRM,Vila São Francisco de Assis,Deslizamento,17,76.5,0.0,27.4,37.1,29.4
+MG_MC_SR_02_CPRM,Vila São Francisco de Assis - Pedreira,Deslizamento e queda de blocos,11,38.3,0.0,26.7,32.2,27.3
+MG_MC_SR_03_CPRM,Vila Itatiaia - Santa Rafaela,Inundação e Enxurrada,509,33.9,7.5,8.9,47.8,2.9
+MG_MC_SR_04_CPRM,Condomínios,Deslizamento,301,119.8,0.0,39.3,69.5,64.5

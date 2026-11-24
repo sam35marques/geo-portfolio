@@ -16,6 +16,13 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-24 — Stream initiation threshold = 2 km² (sensitivity 1 and 3 km²)  [P01]
+- Decision: drainage cells = flow accumulation ≥ 2 km² (main); HAND is also computed with 1 and 3 km².
+- Evidence (`stream_threshold_vs_atlas.csv`, inside the perimeter, 60 m tolerance): at 2 km² the derived network length matches the Atlas network (ratio 0.98), F1 is at its plateau (64.4%; 64.9% at 3 km²), and 96% of canalized reaches are recovered. Natural-reach recall stays at 50–70% for every threshold → positional mismatch (30 m surface model vs streams rectified on 30 cm imagery), not missing network.
+- Alternatives considered: 3 km² (similar F1, sparser network); burning the Atlas streams into the DEM (better alignment in the city, but adds a burn-depth parameter and breaks reuse in cities without such a dataset).
+- Consequence: the Atlas streams were used to **choose** the threshold, so they are not used afterwards to validate the drainage network. External check of HAND = SGB 2014 chart (agreement, not validation).
+- First results (`hand_vs_sgb2014.csv`, `sgb2012_sectors_check.csv`), to carry into Limitations: HAND ≤ 3 m captures 85% of SGB "Alta" and 75% of "Alta+Média", but is broader (only 32% of HAND ≤ 3 m lies in SGB Alta+Média; 60% in any SGB class) — expected from a 30 m surface model vs a 2.5 m terrain model. Disagreement where SGB maps zones the HAND misses is concentrated in **headwaters of streams draining < 2 km²**: the only SGB 2012 flood sector (Vila Itatiaia – Santa Rafaela, Córrego Bicano headwater; max contributing area 2.26 km²) has 7.5% of its cells at HAND ≤ 3 m with the 2 km² network, 21% with 1 km², 0% with 3 km². Exposure along small headwater streams is therefore likely underestimated.
+
 ## 2026-11-24 — Close gaps in the union of Planning Regions (5 m)  [P01]
 - Decision: the urban perimeter is the union of the 19 regions followed by a 5 m morphological closing (buffer +5 m, then −5 m). Parameter `aoi.gap_closing_m`.
 - Reason: the raw union has 101 interior slivers between neighbouring regions (0.012 km², largest 4,074 m²) and 2 tiny detached parts; buildings in them would be dropped. 1–2 m closing leaves 3 holes; 5 m removes all and adds only 0.018 km² (0.01% of 145.2 km²).

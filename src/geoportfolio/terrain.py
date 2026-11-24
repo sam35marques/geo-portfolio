@@ -144,4 +144,8 @@ def compute_hand(grid, dem, fdir, streams: np.ndarray):
     `streams` é uma máscara booleana (True = célula de drenagem).
     Usa o MDE condicionado, coerente com as direções de fluxo.
     """
-    return grid.compute_hand(fdir, dem, streams)
+    from pysheds.sview import Raster
+
+    # o pysheds exige um objeto Raster com a mesma georreferência da grade
+    mask = Raster(np.asarray(streams, dtype=bool), viewfinder=fdir.viewfinder)
+    return grid.compute_hand(fdir, dem, mask)
