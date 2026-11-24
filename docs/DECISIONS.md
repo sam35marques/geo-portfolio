@@ -16,6 +16,11 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-24 — Exposure rule = building representative point  [P01]
+- Decision: a building (and its dasymetric population) is exposed when its representative point falls in a hazard cell (30 m rasters) or polygon (SGB sectors). "Any hazard" = slope ≥ 30% or HAND ≤ 3 m (streams ≥ 2 km²) or SGB 2012 sector.
+- Alternatives considered: any footprint overlap (more conservative, inflates large sheds and edges); fraction of footprint area (more precise, harder to explain, fractional building counts).
+- Reason: each building counted once; simple to explain and reproduce; for small houses on a 30 m grid the rules differ little.
+
 ## 2026-11-24 — Dasymetric population: weights, assignment and export-extent correction  [P01]
 - Decision: each building gets the 2022 population of its census tract (v0001) in proportion to its footprint area (`area_in_meters`); building → tract and building → Planning Region by the polygon's representative point; done separately for confidence ≥ 0.65, 0.70, 0.75 (main 0.75).
 - Correction: the GEE export covers only a rectangle around the perimeter (+500 m). Tracts extending beyond it would push their whole population onto the few exported buildings (11 rural tracts sent 780 people into the perimeter before the fix; one tract with 32% of its area covered sent 308 of 431 residents). Fix: tract population × fraction of tract area inside the export rectangle (assumes uniform density in the uncovered part). Effect: population in the perimeter 392,764 → 392,218 (−0.14%).
