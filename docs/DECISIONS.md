@@ -16,6 +16,12 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-24 — Dasymetric population: weights, assignment and export-extent correction  [P01]
+- Decision: each building gets the 2022 population of its census tract (v0001) in proportion to its footprint area (`area_in_meters`); building → tract and building → Planning Region by the polygon's representative point; done separately for confidence ≥ 0.65, 0.70, 0.75 (main 0.75).
+- Correction: the GEE export covers only a rectangle around the perimeter (+500 m). Tracts extending beyond it would push their whole population onto the few exported buildings (11 rural tracts sent 780 people into the perimeter before the fix; one tract with 32% of its area covered sent 308 of 431 residents). Fix: tract population × fraction of tract area inside the export rectangle (assumes uniform density in the uncovered part). Effect: population in the perimeter 392,764 → 392,218 (−0.14%).
+- Alternative not taken: re-export buildings for the full extent of every tract that touches the perimeter (exact, but a new GEE run for a 0.14% effect).
+- Limitation to state: no distinction between residential and non-residential buildings; the population of a tract is spread over all its buildings, including sheds, shops and industry.
+
 ## 2026-11-24 — Stream initiation threshold = 2 km² (sensitivity 1 and 3 km²)  [P01]
 - Decision: drainage cells = flow accumulation ≥ 2 km² (main); HAND is also computed with 1 and 3 km².
 - Evidence (`stream_threshold_vs_atlas.csv`, inside the perimeter, 60 m tolerance): at 2 km² the derived network length matches the Atlas network (ratio 0.98), F1 is at its plateau (64.4%; 64.9% at 3 km²), and 96% of canalized reaches are recovered. Natural-reach recall stays at 50–70% for every threshold → positional mismatch (30 m surface model vs streams rectified on 30 cm imagery), not missing network.
