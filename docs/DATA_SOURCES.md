@@ -38,11 +38,11 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Field | Content |
 |---|---|
 | Layer / project | Urban perimeter split into 19 Planning Regions · P01 AOI and reporting units |
-| Provider and URL | Academic origin: LEITE, M. E. (2006), master's dissertation (**full reference to complete with the author**). Adopted by Decreto Municipal 3393/2016 and Plano Diretor de Montes Claros, LC nº 53/2016, art. 40. File updated with Census 2010 attributes by S. Marques |
+| Provider and URL | Academic origin: LEITE, M. E. (2006), master's dissertation, Universidade Federal de Uberlândia (UFU). Adopted by Decreto Municipal 3393/2016 and Plano Diretor de Montes Claros, LC nº 53/2016, art. 40. File updated with Census 2010 attributes by S. Marques |
 | Version / file | `Regioes_Planejamento_atualizados2.shp` (from `.rar` dated 2026-04-13) |
 | Access date | 2026-11-24 (provided by the author) |
 | License | No explicit licence. Used with citation; raw file **not redistributed** in this repository, only aggregates per region |
-| Citation | LEITE, M. E. (2006) [dissertation]; Montes Claros, Lei Complementar nº 53/2016, art. 40; Decreto nº 3393/2016 |
+| Citation | LEITE, M. E. Geoprocessamento aplicado ao estudo do espaço urbano: o caso da cidade de Montes Claros/MG. Dissertação (Mestrado) — Universidade Federal de Uberlândia, Uberlândia, 2006; Montes Claros, Lei Complementar nº 53/2016, art. 40; Decreto nº 3393/2016 |
 | How to download | Not publicly downloadable; available from the author / Unimontes research groups on request |
 | Local path | `data/raw/boundaries/regioes_planejamento/` |
 | Notes | EPSG:31983; 19 regions; union = 145.2 km² in 3 parts; neighbouring regions overlap by 0.027 km² (each building assigned to one region). Census 2010 fields ignored. Region name field: `Nome_Polo` (one spelling error in the source: "Distrito Induatrial") |
@@ -73,6 +73,20 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Citation | Kontur (2023). Kontur Population: Global Population Density for 400m H3 Hexagons. Brazil subset, release 2023-11-01 |
 | How to download | `01_download_data.py` |
 | Local path | `data/raw/population/kontur/` |
+
+## sgb_susceptibility_2014 — SGB/CPRM susceptibility chart (mass movement and inundation)
+
+| Field | Content |
+|---|---|
+| Layer / project | Official susceptibility zones · P01 agreement check for HAND and slope |
+| Provider and URL | SGB/CPRM, RIGEO https://rigeo.sgb.gov.br/handle/doc/14942 |
+| Version / file | `sig_montesclaros_mg_suscetibilidade_2014.zip` (GIS vectors, 294 MB); `CS-MontesClaros.pdf` (map with legend). Layers used: `Suscetibilidade/Inundacao_A`, `Movimento_de_Massa_A` (extracted to `suscetibilidade_2014/`) |
+| Access date | 2026-11-24 |
+| License | Public SGB product; free use with citation |
+| Citation | CPRM – Serviço Geológico do Brasil. Carta de suscetibilidade a movimentos gravitacionais de massa e inundação: município de Montes Claros – MG. Rio de Janeiro, 2014. 1 mapa, escala 1:220.000 |
+| How to download | `01_download_data.py` |
+| Local path | `data/raw/hazard/sgb_cprm/` |
+| Notes | EPSG:31983. Built from a 2.5 m airborne radar DTM (BRADAR), modelling validated by field work 2012–2014. Inundation classes by height above drainage: Alta ≤ 1.5 m, Média 1.5–3 m, Baixa > 3 m (legend). Municipal sheet 1:220,000 for the whole municipality (zoning described as "basic level"; technical note refers to 1:25,000 mapping). Same principle as HAND → used as agreement check, not independent validation |
 
 ## sgb_risk_2012 — SGB/CPRM high and very high risk sectors, Montes Claros
 

@@ -16,6 +16,13 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-24 — P01 reference layers: SGB 2014 susceptibility chart + SGB 2012 sectors  [P01]
+- Decision: (1) compare HAND ≤ h and slope ≥ 30% with the SGB/CPRM 2014 susceptibility chart (inundation and mass movement classes) as **agreement with an official susceptibility product**, not as independent validation; (2) use the four 2012 risk sectors as a **qualitative check** (does the flood sector fall in HAND ≤ 3 m; do the landslide sectors fall on slopes ≥ 30%).
+- Alternatives considered: only the 2012 sectors (one flood polygon, too few for any metric); flood event records (S2iD), independent but point/text data of uncertain location.
+- Why not "validation": the chart's inundation classes are defined by height above the drainage — Alta ≤ 1.5 m, Média 1.5–3 m, Baixa > 3 m (map legend) — i.e. the same principle as HAND. Differences that make the comparison informative: the chart uses a 2.5 m airborne radar DTM (BRADAR, bare earth) plus geomorphology, soils and field checks (2012–2014), while P01 uses a free 30 m DSM. The comparison measures how well the free-data workflow reproduces the official product.
+- Note: the main h = 3 m was fixed (decision above) **before** reading the chart legend; it happens to match the chart's Alta+Média break.
+- Inside the urban perimeter the chart maps 15.8 km² of inundation susceptibility (Alta 1.4, Média 6.4, Baixa 8.0 km²).
+
 ## 2026-11-24 — P01 analysis frame  [P01]
 - Question: how many buildings and people in the urban area of Montes Claros are on (a) slopes ≥ 30%, (b) flood-prone lowlands (HAND ≤ h) and (c) SGB/CPRM high and very high risk sectors? How well does Kontur Population match the 2022 Census there?
 - Unit of analysis: the building footprint (exposure); H3 resolution 8 for aggregation, maps and the Kontur comparison.

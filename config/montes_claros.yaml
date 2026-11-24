@@ -54,6 +54,12 @@ sources:
     sgb_risk_vectors:    # SGB/CPRM 2012, setores de risco alto e muito alto (vetores)
       url: "https://rigeo.sgb.gov.br/bitstreams/a2907247-1041-444b-bf5f-7314e6d62b0d/download"
       dest: "data/raw/hazard/sgb_cprm/sig_montesclaros_mg_risco_2012.zip"
+    sgb_susceptibility_2014:   # Carta de suscetibilidade SGB 2014, vetores SIG (294 MB)
+      url: "https://rigeo.sgb.gov.br/bitstreams/e8835d88-341b-4be4-a864-e5644c0388e1/download"
+      dest: "data/raw/hazard/sgb_cprm/sig_montesclaros_mg_suscetibilidade_2014.zip"
+    sgb_susceptibility_2014_map:   # mapa da carta em PDF (44 MB): legenda e nota metodológica
+      url: "https://rigeo.sgb.gov.br/bitstreams/508f38c0-87ee-4bed-a133-bf331c81fc55/download"
+      dest: "data/raw/hazard/sgb_cprm/CS-MontesClaros.pdf"
     sgb_risk_report:     # relatório e pranchas (6,7 MB)
       url: "https://rigeo.sgb.gov.br/bitstreams/bd87a5dd-e2ec-44f9-ba05-bbbfec450cec/download"
       dest: "data/raw/hazard/sgb_cprm/produtos_montesclaros_mg_risco.zip"
