@@ -6,6 +6,7 @@ Tudo vem de config/<cidade>.yaml, carregado por load_config().
 
 from __future__ import annotations
 
+import shutil
 import urllib.request
 from pathlib import Path
 
@@ -58,8 +59,12 @@ def download_file(url: str, dest: Path, overwrite: bool = False) -> Path:
     print(f"Baixando {url}\n  -> {dest}")
     # User-Agent genérico: alguns servidores recusam o padrão do Python
     req = urllib.request.Request(url, headers={"User-Agent": "geoportfolio/0.1"})
-    with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
-        out.write(resp.read())
+    # grava primeiro num arquivo ".part" e só renomeia no fim: se a conexão
+    # cair, não fica um arquivo incompleto com o nome definitivo em data/raw
+    part = dest.with_name(dest.name + ".part")
+    with urllib.request.urlopen(req, timeout=120) as resp, open(part, "wb") as out:
+        shutil.copyfileobj(resp, out, length=1 << 20)  # copia em blocos de 1 MB
+    part.replace(dest)
     return dest
 
 
@@ -80,11 +85,30 @@ def load_municipality(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
     return gdf.to_crs(to_crs or cfg["crs"]["metric"])
 
 
+def load_planning_regions(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
+    """Lê as Regiões de Planejamento e mantém só o nome e a geometria.
+
+    Os demais campos do arquivo (dados do Censo 2010) são descartados de
+    propósito: a população vem do Censo 2022.
+    """
+    name_field = cfg["aoi"]["region_name_field"]
+    rp = gpd.read_file(cfg["paths"]["planning_regions"])
+    rp = rp[[name_field, "geometry"]].rename(columns={name_field: "region"})
+    return rp.to_crs(to_crs or cfg["crs"]["metric"])
+
+
 def load_aoi(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
-    """Devolve a área de estudo (AOI) conforme cfg["aoi"], com buffer opcional."""
+    """Devolve a área de estudo (AOI) conforme cfg["aoi"], com buffer opcional.
+
+    Sempre retorna um único polígono (dissolvido), no CRS métrico salvo indicação.
+    """
     source = cfg["aoi"]["source"]
     if source == "ibge_municipality":
         aoi = load_municipality(cfg, to_crs=cfg["crs"]["metric"])
+    elif source == "planning_regions":
+        rp = load_planning_regions(cfg)
+        # união de todas as regiões = perímetro urbano
+        aoi = gpd.GeoDataFrame({"name": ["urban perimeter"]}, geometry=[rp.union_all()], crs=rp.crs)
     else:
         raise NotImplementedError(f"Fonte de AOI ainda não implementada: {source}")
 

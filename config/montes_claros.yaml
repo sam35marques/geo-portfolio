@@ -12,9 +12,10 @@ crs:
   geographic: "EPSG:4326"     # WGS 84 — só para H3 e mapas web
 
 aoi:
-  # Fase 0: AOI provisória = limite municipal do IBGE.
-  # Projeto 1: será substituída pelos setores censitários urbanos 2022 (ver DECISIONS.md).
-  source: "ibge_municipality"
+  # P01: AOI = perímetro urbano = união das Regiões de Planejamento (DECISIONS 2026-11-24).
+  # Outras opções: "ibge_municipality" (limite municipal, usado na Fase 0).
+  source: "planning_regions"
+  region_name_field: "Nome_Polo"   # campo com o nome da região
   buffer_m: 0                 # buffer em metros aplicado à AOI (documentar ao mudar)
 
 h3:
@@ -27,10 +28,40 @@ paths:
   processed: "data/processed"
   dem: "data/raw/dem/alos_palsar/moc_dem.tif"
   municipality: "data/raw/boundaries/ibge/municipio_3143302.geojson"
+  planning_regions: "data/raw/boundaries/regioes_planejamento/Regioes_Planejamento_atualizados2.shp"
+  census_tracts: "data/raw/population/ibge_census_2022/MG_setores_CD2022.gpkg"
+  sgb_risk_zip: "data/raw/hazard/sgb_cprm/sig_montesclaros_mg_risco_2012.zip"
+  kontur: "data/raw/population/kontur/kontur_population_BR_20231101.gpkg.gz"
+  glo30_dir: "data/raw/dem/copernicus_glo30"
+  open_buildings: "data/raw/buildings/open_buildings/open_buildings_v3_montes_claros.csv"
 
 sources:
   # API de malhas do IBGE (limite municipal; GeoJSON em EPSG:4674 / SIRGAS 2000)
   municipality_url: "https://servicodados.ibge.gov.br/api/v3/malhas/municipios/3143302?formato=application/vnd.geo+json&qualidade=maxima"
+
+  # Arquivos baixados por projects/01-.../scripts/01_download_data.py
+  # (url -> caminho em data/raw). Tamanhos conferidos em 2026-11-24.
+  downloads:
+    census_tracts:   # malha de setores 2022 de MG COM atributos do Censo (177 MB)
+      url: "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/malha_com_atributos/setores/gpkg/UF/MG/MG_setores_CD2022.gpkg"
+      dest: "data/raw/population/ibge_census_2022/MG_setores_CD2022.gpkg"
+    census_dictionary:
+      url: "https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/dicionario_de_dados_agregados_por_setores_censitarios_20261113.xlsx"
+      dest: "data/raw/population/ibge_census_2022/dicionario_de_dados_agregados_por_setores_censitarios_20261113.xlsx"
+    kontur_population:   # Kontur Population Brasil, H3 r8, versão 2023-11-01 (149 MB, gzip)
+      url: "https://geodata-eu-central-1-kontur-public.s3.amazonaws.com/kontur_datasets/kontur_population_BR_20231101.gpkg.gz"
+      dest: "data/raw/population/kontur/kontur_population_BR_20231101.gpkg.gz"
+    sgb_risk_vectors:    # SGB/CPRM 2012, setores de risco alto e muito alto (vetores)
+      url: "https://rigeo.sgb.gov.br/bitstreams/a2907247-1041-444b-bf5f-7314e6d62b0d/download"
+      dest: "data/raw/hazard/sgb_cprm/sig_montesclaros_mg_risco_2012.zip"
+    sgb_risk_report:     # relatório e pranchas (6,7 MB)
+      url: "https://rigeo.sgb.gov.br/bitstreams/bd87a5dd-e2ec-44f9-ba05-bbbfec450cec/download"
+      dest: "data/raw/hazard/sgb_cprm/produtos_montesclaros_mg_risco.zip"
+
+  # Copernicus DEM GLO-30 (AWS Open Data), tiles de 1°x1° em COG
+  glo30_base_url: "https://copernicus-dem-30m.s3.amazonaws.com"
+  glo30_tiles: ["S17_00_W044", "S18_00_W044", "S17_00_W045", "S18_00_W045"]
+  glo30_dir: "data/raw/dem/copernicus_glo30"
 
 dem:
   nodata: 32767               # valor NoData do arquivo original (UInt16)
@@ -42,7 +73,7 @@ thresholds:
   slope_pct_legal: 30                    # Lei 6.766/79
   slope_classes_embrapa_pct: [0, 3, 8, 20, 45, 75]   # limites inferiores das classes EMBRAPA
   hand_m: [1, 2, 3, 5]                   # HAND ≤ h (m); principal definido no Projeto 1
-  hand_m_main: null                      # a decidir com o autor (ver DECISIONS.md)
+  hand_m_main: 3                         # fixado a priori, antes da validação (DECISIONS 2026-11-24)
   stream_accumulation_cells: null        # limiar de área de contribuição; a decidir no Projeto 1
   open_buildings_confidence: [0.65, 0.70, 0.75]
   open_buildings_confidence_main: 0.75

@@ -33,6 +33,73 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Local path | `data/raw/dem/alos_palsar/moc_dem.tif` |
 | Notes | GeoTIFF, UInt16, NoData 32767, LZW; 11120 × 14624 px at 12.5 m; CRS **WGS 84 / UTM 23S (EPSG:32723)**; extent ≈ 44.44–43.13°W, 15.61–17.26°S; elevation 462–1226 m (GDAL statistics). The 12.5 m DEM in RTC products is **resampled from a ~30 m source DEM (SRTM)**, so effective resolution is ~30 m. It is a surface model (includes buildings/trees). SHA256 `6E8131EE1DF8B1577502C6EDCF7D077848DE8A724B826460A76762C7E0E11DEB` |
 
+## planning_regions — Planning Regions of Montes Claros (urban perimeter)
+
+| Field | Content |
+|---|---|
+| Layer / project | Urban perimeter split into 19 Planning Regions · P01 AOI and reporting units |
+| Provider and URL | Academic origin: LEITE, M. E. (2006), master's dissertation (**full reference to complete with the author**). Adopted by Decreto Municipal 3393/2016 and Plano Diretor de Montes Claros, LC nº 53/2016, art. 40. File updated with Census 2010 attributes by S. Marques |
+| Version / file | `Regioes_Planejamento_atualizados2.shp` (from `.rar` dated 2026-04-13) |
+| Access date | 2026-11-24 (provided by the author) |
+| License | No explicit licence. Used with citation; raw file **not redistributed** in this repository, only aggregates per region |
+| Citation | LEITE, M. E. (2006) [dissertation]; Montes Claros, Lei Complementar nº 53/2016, art. 40; Decreto nº 3393/2016 |
+| How to download | Not publicly downloadable; available from the author / Unimontes research groups on request |
+| Local path | `data/raw/boundaries/regioes_planejamento/` |
+| Notes | EPSG:31983; 19 regions; union = 145.2 km² in 3 parts; neighbouring regions overlap by 0.027 km² (each building assigned to one region). Census 2010 fields ignored. Region name field: `Nome_Polo` (one spelling error in the source: "Distrito Induatrial") |
+
+## ibge_census_2022 — Census tracts with population, Minas Gerais
+
+| Field | Content |
+|---|---|
+| Layer / project | 2022 census tracts with aggregate attributes · P01 population (dasymetric step) |
+| Provider and URL | IBGE, https://ftp.ibge.gov.br/Censos/Censo_Demografico_2022/Agregados_por_Setores_Censitarios/malha_com_atributos/setores/gpkg/UF/MG/ |
+| Version / file | `MG_setores_CD2022.gpkg` (server date 2024-11-13); data dictionary `dicionario_de_dados_agregados_por_setores_censitarios_20261113.xlsx` |
+| Access date | 2026-11-24 |
+| License | Public data from IBGE; free use with citation |
+| Citation | IBGE. Censo Demográfico 2022: Agregados por setores censitários. Rio de Janeiro: IBGE |
+| How to download | `projects/01-hazard-exposure-montes-claros/scripts/01_download_data.py` |
+| Local path | `data/raw/population/ibge_census_2022/` |
+| Notes | EPSG:4674; 51,392 tracts in MG, 885 in Montes Claros. `v0001` = total residents (dictionary). Municipality total = 414,240 |
+
+## kontur_population — Kontur Population, Brazil (H3 r8)
+
+| Field | Content |
+|---|---|
+| Layer / project | Population on 400 m H3 hexagons · P01 comparison with Census |
+| Provider and URL | Kontur via HDX, https://data.humdata.org/dataset/kontur-population-brazil |
+| Version / file | `kontur_population_BR_20231101.gpkg.gz` (release 2023-11-01) |
+| Access date | 2026-11-24 |
+| License | CC BY 4.0 |
+| Citation | Kontur (2023). Kontur Population: Global Population Density for 400m H3 Hexagons. Brazil subset, release 2023-11-01 |
+| How to download | `01_download_data.py` |
+| Local path | `data/raw/population/kontur/` |
+
+## sgb_risk_2012 — SGB/CPRM high and very high risk sectors, Montes Claros
+
+| Field | Content |
+|---|---|
+| Layer / project | Field-mapped risk sectors · P01 qualitative check |
+| Provider and URL | SGB/CPRM, RIGEO https://rigeo.sgb.gov.br/handle/doc/19146 |
+| Version / file | `sig_montesclaros_mg_risco_2012.zip` (vectors); `produtos_montesclaros_mg_risco.zip` (report and sheets) |
+| Access date | 2026-11-24 |
+| License | Public SGB product; free use with citation |
+| Citation | MOREIRA, G.; MORAES, J. Ação emergencial para delimitação de áreas em alto e muito alto risco a enchentes e movimentos de massa: município de Montes Claros, MG. Salvador: CPRM, 2012 |
+| How to download | `01_download_data.py` |
+| Notes | Only **4 sectors** (all "Alto"), 0.605 km²: 3 landslide, 1 flood (Vila Itatiaia – Santa Rafaela). Two shapefiles: original (no CRS) and `_atualizado` (EPSG:4326) with the same 4 sectors; the `_atualizado` file is used. Too few for a quantitative validation |
+
+## dem_glo30 — Copernicus DEM GLO-30
+
+| Field | Content |
+|---|---|
+| Layer / project | Main DEM · P01 slope and HAND |
+| Provider and URL | ESA / Copernicus, AWS Open Data: https://copernicus-dem-30m.s3.amazonaws.com |
+| Version / file | Tiles `Copernicus_DSM_COG_10_{S17,S18}_00_{W044,W045}_00_DEM.tif` |
+| Access date | 2026-11-24 |
+| License | Copernicus DEM licence (free use with attribution) |
+| Citation | © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA; all rights reserved |
+| How to download | `01_download_data.py` |
+| Notes | EPSG:4326, 1 arc-second, float32, surface model (DSM). Tiles cover 45–43°W, 18–16°S |
+
 ## ibge_municipality — Municipal boundary, Montes Claros
 
 | Field | Content |
