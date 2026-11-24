@@ -114,6 +114,43 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | How to download | `01_download_data.py` |
 | Notes | EPSG:4326, 1 arc-second, float32, surface model (DSM). Tiles cover 45–43°W, 18–16°S |
 
+## atlas_streams — Urban streams of Montes Claros (Atlas Hidrográfico)
+
+| Field | Content |
+|---|---|
+| Layer / project | Mapped streams with channel type (natural / canalized) · P01 reference for the derived drainage network; channel type in results |
+| Provider and URL | LEITE, M. E.; MARQUES, S. C. S. (org.). Atlas hidrográfico de Montes Claros – MG. Editora Unimontes, 2026 (chapter from p. 106). PDF: https://www.editora.unimontes.br/wp-content/uploads/2026/11/Ebook-Atlas-Hidrografico.pdf |
+| Version / file | `CORREGOS_URB_MOC.shp` (from `HIDROGRAFIA.rar`, provided by the author, co-organizer of the Atlas) |
+| Access date | 2026-11-24 |
+| License | Published research data; used with citation. Raw file **not redistributed** here |
+| Citation | LEITE, M. E.; MARQUES, S. C. S. (org.). Atlas hidrográfico de Montes Claros – MG [e-book]. Montes Claros: Editora Unimontes, 2026. 172 p. ISBN 978-85-7739-852-2 |
+| Local path | `data/raw/hydrography/atlas_hidrografico/hidrografia/` |
+| Notes | EPSG:4326; 69 reaches, 225 km (87 km inside the urban perimeter). Attributes from IGAM's Otto-coded hydrography (version 2010-05-16); geometry rectified on 30 cm imagery inside the urban perimeter (Atlas). `TIPO_CURSO`: natural 57 reaches / 195.6 km, canalized 8 / 19.8 km, missing 4 / 9.6 km |
+
+## atlas_basins — Urban micro-basins of Montes Claros (Atlas Hidrográfico)
+
+| Field | Content |
+|---|---|
+| Layer / project | 16 urban micro-basins (expansion zone) · P01 reporting units for drainage |
+| Provider and URL | Same Atlas as above |
+| Version / file | `BACIAS_URBANAS_MOC_ZONA_EXP.shp` (from `BACIAS URBANAS ZONA DE EXPANSÃO.rar`) |
+| Access date | 2026-11-24 |
+| License | Published research data; used with citation. Raw file not redistributed |
+| Local path | `data/raw/hydrography/atlas_hidrografico/bacias_urbanas/` |
+| Notes | EPSG:31983; union 365.1 km², covers 94.2% of the urban perimeter. `area_km2` holds the **whole** basin area while polygons are clipped to the expansion zone (e.g. Vieira 211.7 vs 100.4 km²). Some geometries invalid → repaired with `make_valid` on read |
+
+## open_buildings — Google Open Buildings v3 (polygons)
+
+| Field | Content |
+|---|---|
+| Layer / project | Building footprints · P01 exposure and dasymetric population |
+| Provider and URL | Google Research, Earth Engine asset `GOOGLE/Research/open-buildings/v3/polygons`; https://sites.research.google/open-buildings/ |
+| Version / file | v3; export `open_buildings_v3_montes_claros.csv` from `02_open_buildings_gee.js` (bbox of the urban perimeter + 500 m; confidence ≥ 0.65; `longitude_latitude` removed) |
+| Access date | 2026-11-24 — GEE console reported **227,649** buildings in the export |
+| License | CC BY 4.0 and ODbL v1.0 (dual licence, user's choice) |
+| Citation | W. Sirko et al. (2021). Continental-Scale Building Detection from High Resolution Satellite Imagery. arXiv:2107.12283 |
+| Local path | `data/raw/buildings/open_buildings/open_buildings_v3_montes_claros.csv` |
+
 ## ibge_municipality — Municipal boundary, Montes Claros
 
 | Field | Content |

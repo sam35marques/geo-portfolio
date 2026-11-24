@@ -16,6 +16,7 @@ aoi:
   # Outras opções: "ibge_municipality" (limite municipal, usado na Fase 0).
   source: "planning_regions"
   region_name_field: "Nome_Polo"   # campo com o nome da região
+  gap_closing_m: 5            # fecha frestas entre regiões vizinhas na união (DECISIONS)
   buffer_m: 0                 # buffer em metros aplicado à AOI (documentar ao mudar)
 
 h3:
@@ -34,6 +35,20 @@ paths:
   kontur: "data/raw/population/kontur/kontur_population_BR_20231101.gpkg.gz"
   glo30_dir: "data/raw/dem/copernicus_glo30"
   open_buildings: "data/raw/buildings/open_buildings/open_buildings_v3_montes_claros.csv"
+  atlas_streams: "data/raw/hydrography/atlas_hidrografico/hidrografia/CORREGOS_URB_MOC.shp"
+  atlas_basins: "data/raw/hydrography/atlas_hidrografico/bacias_urbanas/BACIAS_URBANAS_MOC_ZONA_EXP.shp"
+  interim_p01: "data/interim/p01"
+
+terrain:
+  dem_main: "glo30"            # MDE principal (DECISIONS 2026-11-24)
+  resolution_m: 30             # grade de trabalho em EPSG:31983
+  # domínio hidrológico = AOI + buffer: inclui as áreas a montante dos córregos
+  # urbanos, para não cortar a drenagem na borda da cidade
+  domain_buffer_m: 25000
+  # limiares de área de contribuição (km²) testados contra a hidrografia do Atlas
+  stream_threshold_candidates_km2: [0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0]
+  # distância de tolerância (m) para considerar que dois traçados coincidem
+  stream_match_tolerance_m: 60
 
 sources:
   # API de malhas do IBGE (limite municipal; GeoJSON em EPSG:4674 / SIRGAS 2000)

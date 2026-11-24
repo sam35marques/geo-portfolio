@@ -16,6 +16,19 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-24 — Close gaps in the union of Planning Regions (5 m)  [P01]
+- Decision: the urban perimeter is the union of the 19 regions followed by a 5 m morphological closing (buffer +5 m, then −5 m). Parameter `aoi.gap_closing_m`.
+- Reason: the raw union has 101 interior slivers between neighbouring regions (0.012 km², largest 4,074 m²) and 2 tiny detached parts; buildings in them would be dropped. 1–2 m closing leaves 3 holes; 5 m removes all and adds only 0.018 km² (0.01% of 145.2 km²).
+
+## 2026-11-24 — Hydrological domain = urban perimeter + 25 km; pysheds with NumPy shim  [P01]
+- Decision: flow routing on GLO-30 reprojected to EPSG:31983 at 30 m (bilinear) over the AOI bounding box + 25 km (2,138 × 2,269 cells); conditioning = fill pits → fill depressions → resolve flats; D8 flow directions (pysheds).
+- Reason: the buffer includes the upstream areas of the urban streams so drainage is not cut at the city edge.
+- Technical note: pysheds 0.5 calls `np.in1d`, removed in NumPy 2.4; `terrain.flow_routing` aliases it to the equivalent `np.isin` instead of downgrading NumPy for the whole environment.
+
+## 2026-11-24 — Slope by Horn's method  [P01]
+- Decision: slope (%) from the 30 m GLO-30 grid with Horn's 3×3 method (same as GDAL/QGIS).
+- Note for Limitations: a 30 m surface model smooths short steep slopes, so the area ≥ 30% (2.22% of the perimeter, see `terrain_summary_glo30.csv`) is likely an underestimate.
+
 ## 2026-11-24 — P01 reference layers: SGB 2014 susceptibility chart + SGB 2012 sectors  [P01]
 - Decision: (1) compare HAND ≤ h and slope ≥ 30% with the SGB/CPRM 2014 susceptibility chart (inundation and mass movement classes) as **agreement with an official susceptibility product**, not as independent validation; (2) use the four 2012 risk sectors as a **qualitative check** (does the flood sector fall in HAND ≤ 3 m; do the landslide sectors fall on slopes ≥ 30%).
 - Alternatives considered: only the 2012 sectors (one flood polygon, too few for any metric); flood event records (S2iD), independent but point/text data of uncertain location.

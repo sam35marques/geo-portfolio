@@ -107,8 +107,15 @@ def load_aoi(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
         aoi = load_municipality(cfg, to_crs=cfg["crs"]["metric"])
     elif source == "planning_regions":
         rp = load_planning_regions(cfg)
-        # união de todas as regiões = perímetro urbano
-        aoi = gpd.GeoDataFrame({"name": ["urban perimeter"]}, geometry=[rp.union_all()], crs=rp.crs)
+        # união de todas as regiões = perímetro urbano.
+        # A união deixa frestas entre regiões vizinhas (101 buracos, 0,012 km²).
+        # Um "fechamento" (buffer +d e depois -d) elimina as frestas sem mexer
+        # no contorno externo de forma relevante (d em config: aoi.gap_closing_m).
+        d = cfg["aoi"].get("gap_closing_m", 0) or 0
+        geom = rp.union_all()
+        if d:
+            geom = geom.buffer(d).buffer(-d)
+        aoi = gpd.GeoDataFrame({"name": ["urban perimeter"]}, geometry=[geom], crs=rp.crs)
     else:
         raise NotImplementedError(f"Fonte de AOI ainda não implementada: {source}")
 
