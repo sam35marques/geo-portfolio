@@ -487,7 +487,8 @@ def board_kontur(ctx, N):
 
 
 # =============================================================================
-def main(city: str) -> None:
+def build_context(city: str):
+    """Carrega camadas (ctx) e números das tabelas (N). Reusado por 10_one_pager.py."""
     cfg = load_config(city)
     th = cfg["thresholds"]
     conf = th["open_buildings_confidence_main"]
@@ -524,7 +525,11 @@ def main(city: str) -> None:
         "hand_area": ha[(ha.stream_threshold_km2 == acc) & (ha.hand_m == h)].iloc[0],
         "terrain": pd.read_csv(TABLES / "terrain_summary_glo30.csv").iloc[0],
     }
+    return cfg, ctx, N, sa, mun
 
+
+def main(city: str) -> None:
+    cfg, ctx, N, sa, mun = build_context(city)
     board_location(ctx, sa, mun)
     board_hero(ctx, N)
     board_slope(ctx, N, cfg)

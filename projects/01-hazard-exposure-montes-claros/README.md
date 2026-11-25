@@ -4,7 +4,7 @@
 
 ![Hazard exposure in Montes Claros, aggregated to H3 resolution 8](outputs/maps/hero_exposure_h3.png)
 
-Interactive map (H3 r8, no restricted geometries): [`outputs/web/exposure_map.html`](outputs/web/exposure_map.html)
+[Project page](https://sam35marques.github.io/geo-portfolio/projects/hazard-exposure-montes-claros.html) · [Interactive map](https://sam35marques.github.io/geo-portfolio/projects/hazard-exposure-montes-claros/exposure_map.html) (H3 r8, no restricted geometries) · [One-page summary (PDF)](outputs/one-pager.pdf)
 
 ## Problem
 
@@ -114,6 +114,8 @@ python projects/01-hazard-exposure-montes-claros/scripts/06_exposure.py         
 python projects/01-hazard-exposure-montes-claros/scripts/07_h3_kontur.py          # H3 r8, Kontur comparison
 python projects/01-hazard-exposure-montes-claros/scripts/08_figures.py            # static maps
 python projects/01-hazard-exposure-montes-claros/scripts/09_web_map.py            # interactive map
+python projects/01-hazard-exposure-montes-claros/scripts/10_one_pager.py          # one-page PDF summary
+python projects/01-hazard-exposure-montes-claros/scripts/11_site_assets.py        # copy outputs to the Quarto site
 ```
 
 The Planning Regions and the Atlas streams are not distributed here (see Data). To reproduce the Montes Claros run exactly, request them from their authors and save them at the paths listed in the YAML.
