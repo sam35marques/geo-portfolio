@@ -1,0 +1,13 @@
+dem,dem_label,hazard,parameter,area_km2,buildings,population,population_pct
+glo30,Copernicus GLO-30 (main),slope,>= 30%,3.23,116,446,0.11
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,10.8,3898,9377,2.39
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,14.73,6955,16818,4.29
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,18.45,10360,25225,6.43
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,24.76,16887,42044,10.72
+glo30,Copernicus GLO-30 (main),any hazard,slope >= 30% or HAND <= 3 m (2 km2) or SGB 2012,,10556,25827,6.58
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),slope,>= 30%,2.89,123,370,0.09
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,12.61,7387,18546,4.73
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,16.87,10506,26491,6.75
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,20.53,13722,34652,8.83
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,27.0,20224,51691,13.18
+alos_rtc,ALOS PALSAR RTC (resampled SRTM),any hazard,slope >= 30% or HAND <= 3 m (2 km2) or SGB 2012,,13923,35173,8.97

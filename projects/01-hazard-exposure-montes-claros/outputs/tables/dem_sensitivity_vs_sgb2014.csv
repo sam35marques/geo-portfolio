@@ -1,0 +1,9 @@
+dem,hand_m,hand_area_km2,sgb_high_capture_pct,sgb_high_medium_capture_pct,hand_in_sgb_any_pct
+glo30,1,10.8,59.6,55.2,67.4
+glo30,2,14.73,76.5,66.8,63.4
+glo30,3,18.45,85.4,75.1,59.5
+glo30,5,24.76,92.1,83.4,52.5
+alos_rtc,1,12.61,58.4,55.5,64.2
+alos_rtc,2,16.87,72.8,67.2,60.0
+alos_rtc,3,20.53,82.5,75.9,56.8
+alos_rtc,5,27.0,93.2,85.0,50.1

@@ -31,7 +31,7 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Citation | ASF DAAC (2015). ALOS PALSAR Radiometric Terrain Corrected high res. Includes material © JAXA/METI 2007. https://doi.org/10.5067/Z97HFCNKR6VA (**DOI to verify on the ASF page before publishing**) |
 | How to download | ASF Vertex → ALOS PALSAR → RTC High-Res product (zip contains `*.dem.tif`) |
 | Local path | `data/raw/dem/alos_palsar/moc_dem.tif` |
-| Notes | GeoTIFF, UInt16, NoData 32767, LZW; 11120 × 14624 px at 12.5 m; CRS **WGS 84 / UTM 23S (EPSG:32723)**; extent ≈ 44.44–43.13°W, 15.61–17.26°S; elevation 462–1226 m (GDAL statistics). The 12.5 m DEM in RTC products is **resampled from a ~30 m source DEM (SRTM)**, so effective resolution is ~30 m. It is a surface model (includes buildings/trees). SHA256 `6E8131EE1DF8B1577502C6EDCF7D077848DE8A724B826460A76762C7E0E11DEB` |
+| Notes | GeoTIFF, UInt16, NoData 32767, LZW; 11120 × 14624 px at 12.5 m; CRS **WGS 84 / UTM 23S (EPSG:32723)**; extent ≈ 44.44–43.13°W, 15.61–17.26°S; elevation 462–1226 m (GDAL statistics). The 12.5 m DEM in RTC products is **resampled from a ~30 m source DEM (SRTM)**, so effective resolution is ~30 m. It is a surface model (includes buildings/trees). Inside the urban perimeter it is on average 11.1 m lower than GLO-30 with a small spread (SD 2.2 m; `dem_sensitivity_agreement.csv`), consistent with ellipsoidal heights (ASF RTC) vs EGM2008 geoid heights (GLO-30); a near-constant offset does not affect slope or HAND. SHA256 `6E8131EE1DF8B1577502C6EDCF7D077848DE8A724B826460A76762C7E0E11DEB` |
 
 ## planning_regions — Planning Regions of Montes Claros (urban perimeter)
 
@@ -113,6 +113,20 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Citation | © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA; all rights reserved |
 | How to download | `01_download_data.py` |
 | Notes | EPSG:4326, 1 arc-second, float32, surface model (DSM). Tiles cover 45–43°W, 18–16°S |
+
+## dem_fabdem — FABDEM V1-2 (bare-earth DEM)
+
+| Field | Content |
+|---|---|
+| Layer / project | Alternative DEM · P01 DEM sensitivity only (`12_dem_sensitivity.py`) |
+| Provider and URL | University of Bristol, https://data.bris.ac.uk/data/dataset/25wfy0f9ukoge2gs7a5mqpq2j7 ; mirrored in the GEE Community Catalog as `projects/sat-io/open-datasets/FABDEM` (https://gee-community-catalog.org/projects/fabdem/) |
+| Version / file | V1-2 · `fabdem_v1-2_montes_claros.tif` (GEE export of the hydrological domain, 44.17–43.53°W, 17.04–16.39°S) |
+| Access date | **to fill when exported** |
+| License | **Non-commercial** (CC BY-NC-SA 4.0 per the GEE catalog; check the Bristol page before publishing). The raster and anything derived from it are **not published**; only aggregate tables |
+| Citation | Hawker, L., Uhe, P., Paulo, L., Sosa, J., Savage, J., Sampson, C., Neal, J. (2022). A 30 m global map of elevation with forests and buildings removed. *Environmental Research Letters* 17, 024016. https://doi.org/10.1088/1748-9326/ac4d4f |
+| How to download | Run `projects/01-.../scripts/02b_fabdem_gee.js` in the GEE Code Editor, download from Google Drive |
+| Local path | `data/raw/dem/fabdem/fabdem_v1-2_montes_claros.tif` |
+| Notes | 1 arc-second (≈30 m), EPSG:4326, EGM2008 heights. Copernicus GLO-30 with trees and buildings removed by machine learning |
 
 ## atlas_streams — Urban streams of Montes Claros (Atlas Hidrográfico)
 

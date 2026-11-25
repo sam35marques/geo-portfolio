@@ -57,6 +57,16 @@ terrain:
   stream_threshold_candidates_km2: [0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0]
   # distância de tolerância (m) para considerar que dois traçados coincidem
   stream_match_tolerance_m: 60
+  # MDEs alternativos para a sensibilidade (scripts/12_dem_sensitivity.py).
+  # Cada um é reprojetado para a MESMA grade do GLO-30 (EPSG:31983, 30 m).
+  # Um MDE cujo arquivo ainda não existe é pulado com aviso.
+  sensitivity_dems:
+    alos_rtc:
+      label: "ALOS PALSAR RTC (resampled SRTM)"
+      files: "data/raw/dem/alos_palsar/moc_dem.tif"
+    fabdem:
+      label: "FABDEM V1-2 (bare earth)"
+      files: "data/raw/dem/fabdem/*.tif"
 
 sources:
   # API de malhas do IBGE (limite municipal; GeoJSON em EPSG:4674 / SIRGAS 2000)

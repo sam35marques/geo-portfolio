@@ -16,6 +16,14 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-25 — DEM sensitivity: same chain on ALOS RTC and FABDEM, on the GLO-30 grid  [P01]
+- Decision: `12_dem_sensitivity.py` reruns slope, flow routing and HAND (streams ≥ 2 km², h = 1/2/3/5 m) on each alternative DEM, after reprojecting it to the exact GLO-30 grid (EPSG:31983, 30 m, bilinear), and samples the same buildings (confidence 0.75). GLO-30 is read from the main-run rasters, so its numbers match `exposure_summary.csv`. The stream threshold stays at 2 km² for all DEMs (not re-tuned per DEM).
+- FABDEM comes from a GEE export of the hydrological domain only (`02b_fabdem_gee.js`), not from the 10°×10° Bristol zip (>1 GB).
+- Alternatives considered: native ALOS 12.5 m grid (rejected: the source is ~30 m SRTM, and a different grid mixes resolution with DEM effects); re-tuning the stream threshold per DEM against the Atlas (rejected for now: would mix two sources of change).
+- Reason: isolate the effect of the elevation source on the exposure count.
+- Licence: FABDEM is non-commercial; its raster and derived layers stay in `data/interim/` and are not published; only aggregate rows in `outputs/tables/`.
+- First result (ALOS RTC): residents in HAND ≤ 3 m rise from 25,225 (GLO-30) to 34,652; flood-prone area from 18.45 to 20.53 km²; HAND ≤ 3 m zones overlap with Jaccard 67.7%. Steep-slope residents 446 → 370. Agreement with SGB 2014 *high* class is similar (85.4% vs 82.5%). FABDEM pending (GEE export).
+
 ## 2026-11-25 — All figures as dashboards; location board; clipped streams; visible regions  [P01, all projects]
 - Decision: every P01 figure uses the same 16:9 dashboard (`dashboard.py`): location, hero, steep slopes, flood-prone lowlands (HAND), HAND vs SGB, Kontur vs Census. Slope and HAND are now separate boards.
 - Location for non-Brazilian readers: a first board (South America → Brazil/Minas Gerais → municipality → urban perimeter with the 19 named Planning Regions) and a small locator (South America, Brazil states, Minas Gerais, point) in the corner of every city map. Context layers: Natural Earth countries (public domain) and IBGE state boundaries.
