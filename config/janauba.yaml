@@ -1,0 +1,91 @@
+# Configuração da cidade: Janaúba (MG).
+# Mesmo estudo do Projeto 1 (exposição a perigos), mesmos parâmetros de Montes Claros.
+# Diferenças em relação a config/montes_claros.yaml:
+#   - AOI = setores urbanos do Censo 2022 no distrito-sede (não há camada de perímetro urbano aberta);
+#   - sem Regiões de Planejamento: resultados por hexágono H3;
+#   - sem Atlas Hidrográfico: limiar de drenagem mantido em 2 km² (sensibilidade 1 e 3 km²);
+#   - sem carta de suscetibilidade nem setores de risco do SGB para o município.
+# Caminhos são relativos à raiz do repositório.
+
+city:
+  name: "Janaúba"
+  state: "MG"
+  state_name: "Minas Gerais"
+  state_ibge_code: 31
+  ibge_code: 3135100
+
+crs:
+  metric: "EPSG:31983"        # SIRGAS 2000 / UTM 23S (Janaúba está no fuso 23S)
+  geographic: "EPSG:4326"
+
+aoi:
+  # DECISIONS 2026-11-25: união dos setores do Censo 2022 de situação urbana
+  # (CD_SIT 1 = área urbana de alta densidade, 2 = baixa densidade) no distrito-sede.
+  source: "census_urban_tracts"
+  urban_situation_codes: [1, 2]
+  districts: [313510005]      # distrito-sede de Janaúba
+  gap_closing_m: 5
+  buffer_m: 0
+  label: "urban area"
+
+project:
+  label: "Project 01b"
+  site_url: "https://sam35marques.github.io/geo-portfolio/projects/hazard-exposure-janauba.html"
+  site_slug: "hazard-exposure-janauba"
+  map_credits: "Copernicus GLO-30 · IBGE Census 2022 urban tracts"
+  narrative:
+    slope_where: "Steep land is limited to the hills on the south-eastern edge of the urban area; "
+
+h3:
+  resolution: 8
+  resolution_detail: 9
+
+paths:
+  raw: "data/raw"
+  interim: "data/interim"
+  processed: "data/processed"
+  municipality: "data/raw/boundaries/ibge/municipio_3135100.geojson"
+  census_tracts: "data/raw/population/ibge_census_2022/MG_setores_CD2022.gpkg"
+  kontur: "data/raw/population/kontur/kontur_population_BR_20231101.gpkg.gz"
+  glo30_dir: "data/raw/dem/copernicus_glo30_janauba"
+  open_buildings: "data/raw/buildings/open_buildings/open_buildings_v3_janauba.csv"
+  interim_p01: "data/interim/p01/janauba"
+  processed_p01: "data/processed/p01/janauba"
+  outputs_p01: "projects/01b-hazard-exposure-janauba/outputs"
+  world_countries: "data/raw/boundaries/natural_earth/ne_50m_admin_0_countries.zip"
+  brazil_states: "data/raw/boundaries/ibge/brasil_ufs.geojson"
+
+terrain:
+  dem_main: "glo30"
+  resolution_m: 30
+  domain_buffer_m: 25000
+  stream_threshold_candidates_km2: [0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0]
+  stream_match_tolerance_m: 60
+  sensitivity_dems:
+    fabdem:
+      label: "FABDEM V1-2 (bare earth)"
+      files: "data/raw/dem/fabdem/janauba/*.tif"
+
+sources:
+  municipality_url: "https://servicodados.ibge.gov.br/api/v3/malhas/municipios/3135100?formato=application/vnd.geo+json&qualidade=maxima"
+  # Censo, Kontur, Natural Earth e malha de UFs são os mesmos arquivos de Montes Claros
+  # (já baixados por 01_download_data.py --city montes_claros).
+  downloads: {}
+  glo30_base_url: "https://copernicus-dem-30m.s3.amazonaws.com"
+  glo30_tiles: ["S16_00_W044", "S17_00_W044"]   # conferir com o domínio (AOI + 25 km)
+  glo30_dir: "data/raw/dem/copernicus_glo30_janauba"
+
+thresholds:
+  slope_pct_legal: 30
+  slope_classes_embrapa_pct: [0, 3, 8, 20, 45, 75]
+  hand_m: [1, 2, 3, 5]
+  hand_m_main: 3
+  stream_threshold_km2_main: 2.0
+  stream_threshold_km2: [1.0, 2.0, 3.0]
+  open_buildings_confidence: [0.65, 0.70, 0.75]
+  open_buildings_confidence_main: 0.75
+
+# Retângulo do export do Open Buildings (projects/01b-.../scripts/gee_exports_janauba.js):
+# área urbana (setores urbanos do distrito-sede) + 500 m. Setores que saem dele têm a
+# população reduzida à fração de área coberta (05_buildings_population.py).
+open_buildings_export_bbox_4326: [-43.3485, -15.8786, -43.2570, -15.7671]

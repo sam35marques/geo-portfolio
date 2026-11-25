@@ -1,0 +1,2 @@
+dem,crs,pixel_m,domain_buffer_m,slope_median_pct_in_aoi,slope_p95_pct_in_aoi,area_slope_ge_30pct_in_aoi_pct,area_slope_ge_30pct_in_aoi_km2,atlas_stream_length_in_aoi_km
+Copernicus GLO-30,EPSG:31983,30,25000,2.73,16.65,1.85,0.7,

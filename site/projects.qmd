@@ -3,6 +3,7 @@ title: "Projects"
 ---
 
 1. **[Hazard exposure in Montes Claros](projects/hazard-exposure-montes-claros.qmd)**: about 25,800 residents live in buildings on flood-prone low ground or steep slopes. HAND, slope, dasymetric population on Open Buildings, and Kontur Population vs. Census 2022 on H3 cells. *Published.*
+   - **[Same study in Janaúba](projects/hazard-exposure-janauba.qmd)**: about 13,400 residents (22.3%) live on flood-prone low ground along the Gorutuba River. Same code, a new city configuration. *Published.*
 2. **Seismicity in Montes Claros, 2014–present**: natural vs. quarry-blast events. *Planned.*
 3. **Eucalyptus expansion scenarios to 2052**: cellular automata and neural network land-change modelling. *Planned.*
 4. **Urban heat exposure in Montes Claros**: land surface temperature on H3 cells and population. *Planned.*

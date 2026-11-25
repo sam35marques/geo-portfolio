@@ -1,0 +1,13 @@
+dem,dem_label,hazard,parameter,area_km2,buildings,population,population_pct
+glo30,Copernicus GLO-30 (main),slope,>= 30%,0.7,0,0,0.0
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,7.65,2694,5210,8.64
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,9.61,4645,9387,15.57
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,11.73,6886,13417,22.26
+glo30,Copernicus GLO-30 (main),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,16.06,12014,22217,36.85
+glo30,Copernicus GLO-30 (main),any hazard,slope >= 30% or HAND <= 3 m (2 km2),,6886,13417,22.26
+fabdem,FABDEM V1-2 (bare earth),slope,>= 30%,0.7,2,1,0.0
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,7.35,3595,7050,11.69
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,10.2,5691,11199,18.58
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,12.84,8901,17161,28.47
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,17.94,16028,30160,50.03
+fabdem,FABDEM V1-2 (bare earth),any hazard,slope >= 30% or HAND <= 3 m (2 km2),,8903,17162,28.47

@@ -1,0 +1,2 @@
+h3_resolution,cells,cells_with_population,pop_census_dasymetric,pop_kontur_2023,total_ratio_kontur_over_census,pearson_r,r2,mae_per_cell,median_abs_diff_per_cell,share_abs_diff_of_total_pct,cells_kontur_zero_census_pos,cells_kontur_pos_census_zero
+8,44,41,51600,52285,1.013,0.959,0.919,245.3,81.3,19.5,0,0

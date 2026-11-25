@@ -204,6 +204,22 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Local path | `data/raw/boundaries/ibge/brasil_ufs.geojson` |
 | Notes | EPSG:4326, 27 features, field `codarea` (Minas Gerais = 31) |
 
+## Janaúba (P01 · Janaúba) — files for the second city
+
+Same providers, licences and citations as the Montes Claros entries above; only the extent changes.
+
+| ID | File (local path) | How to get it | Access date | Notes |
+|---|---|---|---|---|
+| ibge_municipality (Janaúba) | `data/raw/boundaries/ibge/municipio_3135100.geojson` | automatic, `load_municipality()` (URL in `config/janauba.yaml`) | 2026-11-25 | IBGE code 3135100; 2,181 km² |
+| dem_glo30 (Janaúba) | `data/raw/dem/copernicus_glo30_janauba/Copernicus_DSM_COG_10_{S16,S17}_00_W044_00_DEM.tif` | `01_download_data.py --city janauba` | 2026-11-25 | sizes and SHA-256 in `data/raw/download_log_janauba.csv` |
+| open_buildings (Janaúba) | `data/raw/buildings/open_buildings/open_buildings_v3_janauba.csv` | `projects/01b-hazard-exposure-janauba/scripts/gee_exports_janauba.js` | 2026-11-25 | bbox −43.3485, −15.8786, −43.2570, −15.7671 (urban area + 500 m); confidence ≥ 0.65; GEE console reported **49,811** buildings |
+| dem_fabdem (Janaúba) | `data/raw/dem/fabdem/janauba/fabdem_v1-2_janauba.tif` | same GEE script | 2026-11-25 | region −43.60, −16.12, −43.01, −15.53; non-commercial licence, not published |
+| ibge_census_2022, kontur_population | same files as Montes Claros | — | — | the urban area is built from the census tracts (`aoi.source: census_urban_tracts`) |
+
+No SGB/CPRM susceptibility chart or risk-sector map was found for Janaúba (RIGEO search, 2026-11-25).
+
 ## Derived layers (not raw)
+
+- `data/interim/p01/janauba/streams_derived_urban.gpkg` — stream network derived from GLO-30 (contributing area ≥ 2 km²), clipped to the Janaúba urban area, written by `08_figures.py` for the map background.
 
 - `data/interim/p01/atlas_streams_urban.gpkg` — Atlas streams clipped to the urban perimeter (fields `NORIOCOMP`, `TIPO_CURSO`), written by `08_figures.py`. Same citation and redistribution limits as `atlas_streams`.

@@ -1,0 +1,4 @@
+confidence_min,buildings_municipality,buildings_in_perimeter,built_area_in_perimeter_km2,population_municipality_census,population_in_export_extent,population_allocated_municipality,population_in_perimeter,tracts_with_pop_but_no_buildings,population_not_allocated
+0.65,46184,44571,3.9,70699,60703,60703,60284,0,0
+0.7,40146,38774,3.73,70699,60703,60703,60284,0,0
+0.75,33408,32311,3.47,70699,60703,60703,60284,0,0

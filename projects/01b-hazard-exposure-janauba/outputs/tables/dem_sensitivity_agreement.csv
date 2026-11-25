@@ -1,0 +1,3 @@
+dem,dem_label,elev_diff_mean_m,elev_diff_median_m,elev_diff_sd_m,elev_diff_abs_p95_m,steep_ge_30pct_jaccard_vs_glo30_pct,hand_le_3m_jaccard_vs_glo30_pct,hand_le_3m_share_inside_glo30_zone_pct
+glo30,Copernicus GLO-30 (main),0.0,0.0,0.0,0.0,100.0,100.0,100.0
+fabdem,FABDEM V1-2 (bare earth),-0.29,-0.18,1.67,3.24,67.1,76.4,82.9

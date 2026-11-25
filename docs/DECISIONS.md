@@ -16,6 +16,20 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-25 — Same study for Janaúba (MG): what changes and what does not  [P01 · Janaúba]
+- Decision: run the unchanged P01 pipeline for Janaúba, the second most populous city of the Minas Gerais semi-arid region, crossed by the Gorutuba River (tributary of the Verde Grande, São Francisco basin), with the Bico da Pedra reservoir on the Janaúba–Porteirinha border. It is a full case study of its own (`projects/01b-hazard-exposure-janauba/`), not a comparison with Montes Claros. Code stays in P01; only `config/janauba.yaml` changes.
+- Same parameters as Montes Claros: GLO-30 at 30 m, slope ≥ 30%, streams ≥ 2 km² (1 and 3 km² sensitivity), HAND ≤ 3 m (1, 2, 5 m sensitivity), Open Buildings confidence 0.75 (0.65/0.70 sensitivity), representative-point exposure, H3 r8.
+- AOI: there is no open urban-perimeter layer for Janaúba. AOI = union of Census 2022 tracts with urban situation (CD_SIT 1 high-density and 2 low-density urban area) in the district seat (313510005), with 5 m gap closing: 37.86 km², 129 tracts, 60,284 residents of 70,699 in the municipality (Census 2022). Alternatives considered: IBGE Urbanized Areas 2019 (different product and date); whole municipality (2,181 km², mostly rural).
+- No Planning Regions: results are reported per H3 r8 hexagon only. OSM neighbourhood names were considered for labels, but the Overpass API did not respond; not used.
+- No reference layers: no SGB/CPRM susceptibility chart or risk sectors for Janaúba were found in RIGEO (search on 2026-11-25), and there is no local stream map. Consequences: no HAND–SGB agreement check; the stream threshold is not tuned locally (kept at 2 km²); "any hazard" = slope or HAND.
+- DEM sensitivity: FABDEM only (the ALOS RTC file on disk does not cover the whole Janaúba domain).
+- Code generalization (Montes Claros results must not change): outputs folder, site slug, map credits, AOI label and map-dependent sentences come from the YAML; Atlas, Planning Regions and SGB layers are optional (`has_layer`); the SGB 2012 shapefile path inside the zip moved to the YAML. Check: all Montes Claros tables regenerated and compared byte for byte with the previous run.
+
+## 2026-11-25 — Cells without HAND are reported, not filled  [P01, P01 · Janaúba]
+- Finding: in both cities one cluster of ~0.6 km² inside the AOI has no HAND (NaN): its flow ends in an unresolved flat (pysheds direction code −2) before reaching a ≥ 2 km² stream. Montes Claros: 667 cells (0.41% of the perimeter); Janaúba: 675 cells (1.60%). Buildings there count as not exposed.
+- Decision: keep the method (no change to published Montes Claros numbers) and report buildings and residents without HAND in `hand_undefined.csv`, cited in Limitations.
+- Alternatives considered: treat these cells as HAND = 0 (overstates: they are not next to a stream); breach depressions with WhiteboxTools (new dependency and a method change for both cities).
+
 ## 2026-11-25 — DEM sensitivity: same chain on ALOS RTC and FABDEM, on the GLO-30 grid  [P01]
 - Decision: `12_dem_sensitivity.py` reruns slope, flow routing and HAND (streams ≥ 2 km², h = 1/2/3/5 m) on each alternative DEM, after reprojecting it to the exact GLO-30 grid (EPSG:31983, 30 m, bilinear), and samples the same buildings (confidence 0.75). GLO-30 is read from the main-run rasters, so its numbers match `exposure_summary.csv`. The stream threshold stays at 2 km² for all DEMs (not re-tuned per DEM).
 - FABDEM comes from a GEE export of the hydrological domain only (`02b_fabdem_gee.js`), not from the 10°×10° Bristol zip (>1 GB).

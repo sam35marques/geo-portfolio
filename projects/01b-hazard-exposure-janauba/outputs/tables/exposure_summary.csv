@@ -1,0 +1,46 @@
+hazard,parameter,confidence_min,buildings,buildings_pct,built_area_km2,population,population_pct
+all buildings in perimeter,,0.65,44571,100.0,3.9,60284,100.0
+slope,>= 30%,0.65,0,0.0,0.0,0,0.0
+flood-prone (HAND),HAND <= 1 m; streams >= 1 km2,0.65,4980,11.17,0.422,7537,12.5
+flood-prone (HAND),HAND <= 2 m; streams >= 1 km2,0.65,8126,18.23,0.688,11889,19.72
+flood-prone (HAND),HAND <= 3 m; streams >= 1 km2,0.65,11349,25.46,0.977,15796,26.2
+flood-prone (HAND),HAND <= 5 m; streams >= 1 km2,0.65,18124,40.66,1.597,24264,40.25
+flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,0.65,3805,8.54,0.313,5300,8.79
+flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,0.65,6495,14.57,0.534,9457,15.69
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.65,9518,21.35,0.792,13500,22.39
+flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,0.65,16619,37.29,1.422,22333,37.05
+flood-prone (HAND),HAND <= 1 m; streams >= 3 km2,0.65,3601,8.08,0.296,5036,8.35
+flood-prone (HAND),HAND <= 2 m; streams >= 3 km2,0.65,5715,12.82,0.466,7832,12.99
+flood-prone (HAND),HAND <= 3 m; streams >= 3 km2,0.65,8347,18.73,0.695,11064,18.35
+flood-prone (HAND),HAND <= 5 m; streams >= 3 km2,0.65,14642,32.85,1.278,18918,31.38
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.65,9518,21.35,0.792,13500,22.39
+all buildings in perimeter,,0.7,38774,100.0,3.73,60284,100.0
+slope,>= 30%,0.7,0,0.0,0.0,0,0.0
+flood-prone (HAND),HAND <= 1 m; streams >= 1 km2,0.7,4332,11.17,0.403,7505,12.45
+flood-prone (HAND),HAND <= 2 m; streams >= 1 km2,0.7,7076,18.25,0.659,11869,19.69
+flood-prone (HAND),HAND <= 3 m; streams >= 1 km2,0.7,9872,25.46,0.933,15763,26.15
+flood-prone (HAND),HAND <= 5 m; streams >= 1 km2,0.7,15721,40.55,1.525,24216,40.17
+flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,0.7,3294,8.5,0.298,5264,8.73
+flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,0.7,5646,14.56,0.511,9428,15.64
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.7,8296,21.4,0.756,13465,22.34
+flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,0.7,14432,37.22,1.358,22284,36.96
+flood-prone (HAND),HAND <= 1 m; streams >= 3 km2,0.7,3113,8.03,0.282,5003,8.3
+flood-prone (HAND),HAND <= 2 m; streams >= 3 km2,0.7,4963,12.8,0.445,7808,12.95
+flood-prone (HAND),HAND <= 3 m; streams >= 3 km2,0.7,7258,18.72,0.663,11031,18.3
+flood-prone (HAND),HAND <= 5 m; streams >= 3 km2,0.7,12719,32.8,1.219,18875,31.31
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.7,8296,21.4,0.756,13465,22.34
+all buildings in perimeter,,0.75,32311,100.0,3.469,60284,100.0
+slope,>= 30%,0.75,0,0.0,0.0,0,0.0
+flood-prone (HAND),HAND <= 1 m; streams >= 1 km2,0.75,3586,11.1,0.374,7462,12.38
+flood-prone (HAND),HAND <= 2 m; streams >= 1 km2,0.75,5872,18.17,0.612,11836,19.63
+flood-prone (HAND),HAND <= 3 m; streams >= 1 km2,0.75,8212,25.42,0.866,15702,26.05
+flood-prone (HAND),HAND <= 5 m; streams >= 1 km2,0.75,13096,40.53,1.417,24141,40.05
+flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,0.75,2694,8.34,0.274,5210,8.64
+flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,0.75,4645,14.38,0.472,9387,15.57
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.75,6886,21.31,0.7,13417,22.26
+flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,0.75,12014,37.18,1.261,22217,36.85
+flood-prone (HAND),HAND <= 1 m; streams >= 3 km2,0.75,2538,7.85,0.259,4943,8.2
+flood-prone (HAND),HAND <= 2 m; streams >= 3 km2,0.75,4063,12.57,0.41,7758,12.87
+flood-prone (HAND),HAND <= 3 m; streams >= 3 km2,0.75,5987,18.53,0.612,10968,18.19
+flood-prone (HAND),HAND <= 5 m; streams >= 3 km2,0.75,10537,32.61,1.131,18790,31.17
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.75,6886,21.31,0.7,13417,22.26

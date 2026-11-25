@@ -1,0 +1,10 @@
+hazard,parameter,confidence_min,buildings,built_area_km2,population
+slope,>= 30%,0.65,0,0.0,0
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.65,9518,0.792,13500
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.65,9518,0.792,13500
+slope,>= 30%,0.7,0,0.0,0
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.7,8296,0.756,13465
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.7,8296,0.756,13465
+slope,>= 30%,0.75,0,0.0,0
+flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,0.75,6886,0.7,13417
+any hazard,slope >= 30% or HAND <= 3 m (2 km2),0.75,6886,0.7,13417
