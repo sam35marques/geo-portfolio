@@ -66,4 +66,4 @@ The full list, data table, licences and reproduction steps are in the [case stud
 
 ## Interactive map
 
-<iframe src="hazard-exposure-montes-claros/exposure_map.html" width="100%" height="560" style="border:1px solid #E3E6EE; border-radius:8px;" title="Interactive map of exposed residents per H3 hexagon"></iframe>
+<iframe src="hazard-exposure-montes-claros/exposure_map.html" width="100%" height="640" style="border:1px solid #E3E6EE; border-radius:8px;" title="Interactive map of exposed residents per H3 hexagon"></iframe>

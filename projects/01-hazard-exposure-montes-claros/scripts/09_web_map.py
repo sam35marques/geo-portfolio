@@ -124,22 +124,37 @@ def main(city: str) -> None:
                                                  aliases=["Sector", "Place", "Process", "Risk level"])).add_to(m)
 
     # --- legenda e créditos ----------------------------------------------------------
-    labels = ["none", "1–50", "51–200", "201–500", "501–1,000", "> 1,000"]
-    items = "".join(f'<div><span style="background:{c};width:12px;height:12px;display:inline-block;'
-                    f'margin-right:6px;border:1px solid #ccc"></span>{l}</div>' for c, l in zip(cols, labels))
-    legend = (f'<div style="position:fixed;bottom:30px;left:10px;z-index:9999;background:white;padding:8px 10px;'
-              f'font:12px sans-serif;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3)">'
-              f'<b>Exposed residents per hexagon</b>{items}'
-              f'<div style="margin-top:6px;color:#666;max-width:220px">Flood-prone = terrain susceptibility '
-              f'(HAND, 30 m DEM), not a modelled flood extent.</div></div>')
+    # Legenda e controles compactos: o mapa é embutido num quadro (iframe) no site,
+    # então nada pode cobrir boa parte dele. A legenda é recolhível (<details>) e
+    # a lista de camadas fica fechada num ícone (abre ao passar o mouse ou tocar).
+    # Legenda horizontal (uma faixa de cores com rótulos embaixo), no canto inferior
+    # direito, que fica livre porque a cidade está à esquerda do centro.
+    labels = ["0", "1–50", "51–200", "201–500", "501–1k", ">1k"]
+    items = "".join(f'<div style="text-align:center;width:42px;white-space:nowrap"><div style="background:{c};height:9px;'
+                    f'border:1px solid #ccc"></div>{l}</div>' for c, l in zip(cols, labels))
+    legend = (f'<details open class="p01-legend" style="position:fixed;bottom:30px;right:10px;z-index:9999;'
+              f'background:rgba(255,255,255,.92);padding:4px 7px;font:10px sans-serif;line-height:1.3;'
+              f'border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3)">'
+              f'<summary style="cursor:pointer;font-weight:bold;font-size:11px">Exposed residents per hexagon'
+              f'</summary><div style="display:flex;gap:1px;margin-top:3px">{items}</div>'
+              f'<div style="margin-top:3px;color:#666">HAND: terrain susceptibility, not a flood model</div>'
+              f'</details>')
     m.get_root().html.add_child(folium.Element(legend))
-    title = ('<div style="position:fixed;top:10px;left:50px;z-index:9999;background:white;padding:6px 10px;'
-             'font:14px sans-serif;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3)">'
-             '<b>Hazard exposure in Montes Claros, Brazil</b> · H3 resolution 8</div>')
+    title = ('<div class="p01-title" style="position:fixed;top:10px;left:50px;z-index:9999;'
+             'background:rgba(255,255,255,.92);padding:4px 8px;font:12px sans-serif;border-radius:4px;'
+             'box-shadow:0 1px 4px rgba(0,0,0,.3)"><b>Hazard exposure in Montes Claros</b> · H3 r8</div>')
     m.get_root().html.add_child(folium.Element(title))
     m.get_root().html.add_child(folium.Element(
-        "<style>.leaflet-control-attribution{font-size:10px}</style>"))
-    folium.LayerControl(collapsed=False).add_to(m)
+        "<style>.leaflet-control-attribution{font-size:9px}"
+        ".leaflet-control-layers-expanded{font-size:11px}"
+        # quadro estreito (celular): título some e a legenda começa recolhida pelo script abaixo
+        "@media (max-width:600px){.p01-title{display:none}}</style>"
+        "<script>if (window.innerWidth < 600) {document.addEventListener('DOMContentLoaded', function () {"
+        "var d = document.querySelector('.p01-legend'); if (d) d.removeAttribute('open');});}</script>"))
+    folium.LayerControl(collapsed=True).add_to(m)
+    # enquadra a cidade inteira no quadro, qualquer que seja o tamanho
+    b = hexes.total_bounds
+    m.fit_bounds([[b[1], b[0]], [b[3], b[2]]], padding=(10, 10))
 
     out = PROJECT_DIR / "outputs" / "web" / "exposure_map.html"
     out.parent.mkdir(parents=True, exist_ok=True)
