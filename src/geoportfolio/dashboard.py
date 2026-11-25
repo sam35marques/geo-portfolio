@@ -190,6 +190,71 @@ class Dashboard:
         return [png, svg]
 
 
+# --- base comum dos mapas da cidade --------------------------------------------
+REGION_LINE = "#4A4F72"   # limites das Regiões de Planejamento (bem visíveis)
+STREAM = "#2b7bba"
+
+
+def city_base(ax, aoi, regions, streams, extent, labels=False, label_size=7.5, fill="white"):
+    """Fundo comum: sombra suave, perímetro preenchido, córregos, limites das regiões.
+
+    As camadas temáticas devem usar zorder entre 2 e 3 (acima do preenchimento,
+    abaixo dos limites). Devolve os limites visíveis (x0, x1) do mapa.
+    """
+    import matplotlib.patheffects as pe
+
+    x0, y0, x1, y1 = extent
+    poly = aoi.geometry.iloc[0]
+    soft_shadow(ax, poly, extent)
+    aoi.plot(ax=ax, color=fill, edgecolor="none", zorder=1)
+    if streams is not None and len(streams):
+        streams.plot(ax=ax, color=STREAM, linewidth=0.9, zorder=4)
+    regions.boundary.plot(ax=ax, color=REGION_LINE, linewidth=1.0, zorder=5)
+    aoi.boundary.plot(ax=ax, color=DASH["ink"], linewidth=1.6, zorder=6)
+    if labels:
+        halo = [pe.withStroke(linewidth=2.6, foreground="white")]
+        for _, r in regions.iterrows():
+            p = r.geometry.representative_point()
+            name = r["region"].replace("Induatrial", "Industrial")   # grafia corrigida só no rótulo
+            # regiões pequenas (centro) ganham rótulo menor, para não sobrepor
+            size = label_size if r.geometry.area > 3e6 else label_size - 1.6
+            ax.text(p.x, p.y, name.replace(" ", "\n", 1) if len(name) > 13 else name,
+                    ha="center", va="center", fontsize=size, color=DASH["ink"], weight="semibold",
+                    linespacing=1.0, zorder=7, path_effects=halo)
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_xlim(x0, x1)
+    ax.set_ylim(y0, y1)
+    ax.apply_aspect()
+    ax.axis("off")
+    return ax.get_xlim()
+
+
+def locator(fig, rect, countries, states, state_code, lonlat, label):
+    """Localizador: América do Sul (contexto), Brasil com estados, estado destacado e ponto.
+
+    rect = [x, y, w, h] em coordenadas da figura. Coordenadas geográficas
+    (EPSG:4326), com proporção corrigida pela latitude — suficiente para um
+    mapa de localização.
+    """
+    ax = fig.add_axes(rect)
+    ax.set_zorder(8)
+    sa = countries[countries["CONTINENT"] == "South America"]
+    sa.plot(ax=ax, color="#E3E6EE", edgecolor="white", linewidth=0.4)
+    states.plot(ax=ax, color="#D3D7E6", edgecolor="white", linewidth=0.4)
+    states[states["codarea"].astype(str) == str(state_code)].plot(ax=ax, color="#9AA3C7", edgecolor="white",
+                                                                  linewidth=0.4)
+    ax.scatter([lonlat[0]], [lonlat[1]], s=26, color=OKABE_ITO["vermillion"], edgecolors="white",
+               linewidths=1.0, zorder=5)
+    ax.set_xlim(-82, -33)
+    ax.set_ylim(-56, 13)
+    ax.set_aspect(1 / np.cos(np.radians(15)))
+    ax.axis("off")
+    ax.text(lonlat[0] + 2, lonlat[1], label, fontsize=7.5, color=DASH["ink"], va="center", weight="semibold",
+            path_effects=[__import__("matplotlib.patheffects", fromlist=["withStroke"]).withStroke(
+                linewidth=2.2, foreground="white")])
+    return ax
+
+
 # --- elementos de mapa (coordenadas do mapa, em metros) ------------------------
 def soft_shadow(ax, geom, extent, res=25, offset=(120, -260), sigma=8, alpha=0.22):
     """Sombra suave deslocada sob um polígono (efeito de "cartão" do perímetro)."""

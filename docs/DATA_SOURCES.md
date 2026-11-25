@@ -164,3 +164,32 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | How to download | automatic: `geoportfolio.io.load_municipality()` (URL in `config/montes_claros.yaml`) |
 | Local path | `data/raw/boundaries/ibge/municipio_3143302.geojson` |
 | Notes | GeoJSON, SIRGAS 2000 geographic (EPSG:4674) |
+
+## world_countries — Natural Earth admin-0 countries (1:50M)
+
+| Field | Content |
+|---|---|
+| Layer / project | Country outlines · location board and map locators |
+| Provider and URL | Natural Earth, https://www.naturalearthdata.com/ (file from https://naciscdn.org/naturalearth/50m/cultural/ne_50m_admin_0_countries.zip) |
+| Access date | 2026-11-25 |
+| License | Public domain |
+| Citation | Made with Natural Earth. Free vector and raster map data @ naturalearthdata.com |
+| How to download | `01_download_data.py` |
+| Local path | `data/raw/boundaries/natural_earth/ne_50m_admin_0_countries.zip` |
+
+## brazil_states — IBGE state boundaries (minimum quality)
+
+| Field | Content |
+|---|---|
+| Layer / project | Brazilian states · location board and map locators |
+| Provider and URL | IBGE, API de Malhas Territoriais v3 (`/paises/BR?intrarregiao=UF&qualidade=minima`) |
+| Access date | 2026-11-25 |
+| License | Public data from IBGE; free use with citation |
+| Citation | IBGE. Malha Territorial — Unidades da Federação. Rio de Janeiro: IBGE |
+| How to download | `01_download_data.py` |
+| Local path | `data/raw/boundaries/ibge/brasil_ufs.geojson` |
+| Notes | EPSG:4326, 27 features, field `codarea` (Minas Gerais = 31) |
+
+## Derived layers (not raw)
+
+- `data/interim/p01/atlas_streams_urban.gpkg` — Atlas streams clipped to the urban perimeter (fields `NORIOCOMP`, `TIPO_CURSO`), written by `08_figures.py`. Same citation and redistribution limits as `atlas_streams`.

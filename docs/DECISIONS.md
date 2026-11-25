@@ -16,6 +16,13 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-25 — All figures as dashboards; location board; clipped streams; visible regions  [P01, all projects]
+- Decision: every P01 figure uses the same 16:9 dashboard (`dashboard.py`): location, hero, steep slopes, flood-prone lowlands (HAND), HAND vs SGB, Kontur vs Census. Slope and HAND are now separate boards.
+- Location for non-Brazilian readers: a first board (South America → Brazil/Minas Gerais → municipality → urban perimeter with the 19 named Planning Regions) and a small locator (South America, Brazil states, Minas Gerais, point) in the corner of every city map. Context layers: Natural Earth countries (public domain) and IBGE state boundaries.
+- Streams: the Atlas streams are clipped to the urban perimeter in a derived layer (`data/interim/p01/atlas_streams_urban.gpkg`, written by `08_figures.py`); the raw file is unchanged (rule 4).
+- Planning Region boundaries drawn in a dark line (#4A4F72, 1 pt) on all city maps; names on the location, slope and HAND boards (smaller font for regions < 3 km²).
+- Text claims on the boards come from tables; an unsupported phrase about canalized streams was removed.
+
 ## 2026-11-25 — Hero map as a 16:9 dashboard  [P01, all projects]
 - Decision: the hero map becomes a dashboard panel (`src/geoportfolio/dashboard.py`): headline number and indicator rows on the left, map in the centre with callouts for the three Planning Regions with most exposed residents, cards on the right (legend, "Why it matters", method), sources in the footer.
 - Reference: layout of the author's SIU panel template (indicator column, centre map, cards, callouts, soft shadow under the perimeter). **Not** reused: the municipal brand, footer and tabs — a public personal portfolio must not look like an official City Hall product (CLAUDE.md: no logos, no municipal material). Kept from the portfolio: H3 r8 cells (Kontur standard), Okabe-Ito / YlOrRd colours, English text and number format.
