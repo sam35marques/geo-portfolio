@@ -11,3 +11,9 @@ alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 2 m; stream
 alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,20.53,13722,34652,8.83
 alos_rtc,ALOS PALSAR RTC (resampled SRTM),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,27.0,20224,51691,13.18
 alos_rtc,ALOS PALSAR RTC (resampled SRTM),any hazard,slope >= 30% or HAND <= 3 m (2 km2) or SGB 2012,,13923,35173,8.97
+fabdem,FABDEM V1-2 (bare earth),slope,>= 30%,3.04,28,57,0.01
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 1 m; streams >= 2 km2,11.93,6556,17021,4.34
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 2 m; streams >= 2 km2,16.73,10971,28418,7.25
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 3 m; streams >= 2 km2,20.93,15145,38920,9.92
+fabdem,FABDEM V1-2 (bare earth),flood-prone (HAND),HAND <= 5 m; streams >= 2 km2,27.24,22324,57576,14.68
+fabdem,FABDEM V1-2 (bare earth),any hazard,slope >= 30% or HAND <= 3 m (2 km2) or SGB 2012,,15260,39148,9.98

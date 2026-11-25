@@ -22,7 +22,8 @@ Before modelling, each project also records its **analysis frame**: question, un
 - Alternatives considered: native ALOS 12.5 m grid (rejected: the source is ~30 m SRTM, and a different grid mixes resolution with DEM effects); re-tuning the stream threshold per DEM against the Atlas (rejected for now: would mix two sources of change).
 - Reason: isolate the effect of the elevation source on the exposure count.
 - Licence: FABDEM is non-commercial; its raster and derived layers stay in `data/interim/` and are not published; only aggregate rows in `outputs/tables/`.
-- First result (ALOS RTC): residents in HAND ≤ 3 m rise from 25,225 (GLO-30) to 34,652; flood-prone area from 18.45 to 20.53 km²; HAND ≤ 3 m zones overlap with Jaccard 67.7%. Steep-slope residents 446 → 370. Agreement with SGB 2014 *high* class is similar (85.4% vs 82.5%). FABDEM pending (GEE export).
+- Results (ALOS RTC / FABDEM vs GLO-30): residents in HAND ≤ 3 m rise from 25,225 (GLO-30) to 34,652; flood-prone area from 18.45 to 20.53 km²; HAND ≤ 3 m zones overlap with Jaccard 67.7%. Steep-slope residents 446 → 370. Agreement with SGB 2014 *high* class is similar (85.4% vs 82.5%). FABDEM (exported 2026-11-25): HAND ≤ 3 m residents 38,920, area 20.93 km², Jaccard 71.9%; steep-slope residents 57 (steep area 3.04 km²), so many steep cells under buildings in GLO-30 are likely roof edges. Mean elevation difference to GLO-30: ALOS −11.1 m (datum offset), FABDEM −1.4 m.
+- Consequence: the README Limitations now lead with the DEM range (25,225–38,920); the headline stays on GLO-30, as decided.
 
 ## 2026-11-25 — All figures as dashboards; location board; clipped streams; visible regions  [P01, all projects]
 - Decision: every P01 figure uses the same 16:9 dashboard (`dashboard.py`): location, hero, steep slopes, flood-prone lowlands (HAND), HAND vs SGB, Kontur vs Census. Slope and HAND are now separate boards.

@@ -29,7 +29,7 @@ This is an **exposure** study: it counts people in hazard-prone areas. It does n
 3. **HAND:** streams start at a 2 km² contributing area. Flood-prone means HAND ≤ 3 m, fixed before any comparison.
 4. **Population:** Census 2022 tract population spread over Google Open Buildings v3 footprints (confidence ≥ 0.75), by footprint area.
 5. **Exposure:** a building is exposed when its representative point falls in a hazard zone. Totals by Planning Region and H3 resolution 8 cell.
-6. **Checks and sensitivity:** comparison with the SGB/CPRM 2014 susceptibility chart and with Kontur Population; reruns for HAND 1–5 m, streams 1–3 km² and building confidence 0.65–0.75.
+6. **Checks and sensitivity:** comparison with the SGB/CPRM 2014 susceptibility chart and with Kontur Population; reruns for HAND 1–5 m, streams 1–3 km², building confidence 0.65–0.75, and two other DEMs (ALOS PALSAR RTC and the bare-earth FABDEM).
 
 ## Results
 
@@ -57,7 +57,9 @@ Across 176 populated H3 r8 cells, the dasymetric estimate and Kontur Population 
 
 ## Limitations
 
-- The HAND threshold matters most: with streams ≥ 2 km², flood-prone residents range from 9,377 (HAND ≤ 1 m) to 42,044 (HAND ≤ 5 m).
+- The DEM matters as much as the HAND threshold. At HAND ≤ 3 m, flood-prone residents are 25,225 with GLO-30, 34,652 with ALOS RTC and 38,920 with the bare-earth FABDEM. GLO-30, a surface model, likely gives the low end.
+- With streams ≥ 2 km², flood-prone residents range from 9,377 (HAND ≤ 1 m) to 42,044 (HAND ≤ 5 m) on GLO-30.
+- Steep-slope exposure is small and partly a surface-model effect: 446 residents with GLO-30, 57 with FABDEM.
 - HAND is a terrain index, not a flood model: no rainfall, discharge or return period.
 - GLO-30 is a 30 m surface model; roofs and trees raise elevation, and canalized streams under streets are not visible.
 - Population per building follows footprint area and ignores building height and use.

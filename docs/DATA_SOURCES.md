@@ -121,8 +121,8 @@ All data used in this repository are open and citable. Raw files live in `data/r
 | Layer / project | Alternative DEM · P01 DEM sensitivity only (`12_dem_sensitivity.py`) |
 | Provider and URL | University of Bristol, https://data.bris.ac.uk/data/dataset/25wfy0f9ukoge2gs7a5mqpq2j7 ; mirrored in the GEE Community Catalog as `projects/sat-io/open-datasets/FABDEM` (https://gee-community-catalog.org/projects/fabdem/) |
 | Version / file | V1-2 · `fabdem_v1-2_montes_claros.tif` (GEE export of the hydrological domain, 44.17–43.53°W, 17.04–16.39°S) |
-| Access date | **to fill when exported** |
-| License | **Non-commercial** (CC BY-NC-SA 4.0 per the GEE catalog; check the Bristol page before publishing). The raster and anything derived from it are **not published**; only aggregate tables |
+| Access date | 2026-11-25 |
+| License | **Non-commercial** (CC BY-NC-SA 4.0 per the GEE Community Catalog, checked 2026-11-25; the Bristol page did not load). Attribution must also credit Copernicus WorldDEM-30. The raster and anything derived from it are **not published**; only aggregate tables |
 | Citation | Hawker, L., Uhe, P., Paulo, L., Sosa, J., Savage, J., Sampson, C., Neal, J. (2022). A 30 m global map of elevation with forests and buildings removed. *Environmental Research Letters* 17, 024016. https://doi.org/10.1088/1748-9326/ac4d4f |
 | How to download | Run `projects/01-.../scripts/02b_fabdem_gee.js` in the GEE Code Editor, download from Google Drive |
 | Local path | `data/raw/dem/fabdem/fabdem_v1-2_montes_claros.tif` |

@@ -1,3 +1,4 @@
 dem,dem_label,elev_diff_mean_m,elev_diff_median_m,elev_diff_sd_m,elev_diff_abs_p95_m,steep_ge_30pct_jaccard_vs_glo30_pct,hand_le_3m_jaccard_vs_glo30_pct,hand_le_3m_share_inside_glo30_zone_pct
 glo30,Copernicus GLO-30 (main),0.0,0.0,0.0,0.0,100.0,100.0,100.0
 alos_rtc,ALOS PALSAR RTC (resampled SRTM),-11.13,-11.09,2.15,14.59,74.3,67.7,76.7
+fabdem,FABDEM V1-2 (bare earth),-1.38,-1.11,2.27,5.3,72.9,71.9,78.7

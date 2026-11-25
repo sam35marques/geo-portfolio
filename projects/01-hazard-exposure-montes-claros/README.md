@@ -19,6 +19,8 @@ This is an **exposure** study. It counts people in hazard-prone areas. It does n
 | Layer | Source | Resolution / scale | Date | Licence |
 |---|---|---|---|---|
 | Elevation | Copernicus DEM GLO-30 | 30 m | TanDEM-X, 2011–2015 | Copernicus DEM licence (free use with attribution) |
+| Elevation (sensitivity only) | ALOS PALSAR RTC DEM (ASF DAAC) | 12.5 m, resampled from ~30 m SRTM | SRTM, 2000 | ASF DAAC terms; cite source |
+| Elevation (sensitivity only) | FABDEM V1-2 (Hawker et al., 2022), bare earth | 30 m | based on GLO-30 | CC BY-NC-SA 4.0; **only aggregate tables published** |
 | Buildings | Google Open Buildings v3 | footprint polygons | v3 (2023) | CC BY 4.0 / ODbL |
 | Population | IBGE Census 2022, tracts with attributes | census tract | 2022 | IBGE open data, cite source |
 | Population (comparison) | Kontur Population, Brazil | H3 r8 (~0.7 km²) | release 2023-11-01 | CC BY 4.0 |
@@ -39,7 +41,7 @@ Full details (URLs, access dates, file names, citations): [`docs/DATA_SOURCES.md
 5. **Dasymetric population.** Each tract's 2022 population is split among its buildings in proportion to footprint area. Tracts that extend past the export box keep only the population share of the area that is covered.
 6. **Exposure.** A building is exposed when its representative point falls in a hazard zone: steep slope, flood-prone HAND, or an SGB 2012 high-risk sector. Results are summed by Planning Region and by H3 resolution 8 cell.
 7. **Checks.** HAND and slope zones are compared with the SGB 2014 susceptibility classes. Population per H3 cell is compared with Kontur Population.
-8. **Sensitivity.** The whole chain is rerun for HAND = 1, 2, 3 and 5 m, stream thresholds of 1, 2 and 3 km², and building confidence of 0.65, 0.70 and 0.75.
+8. **Sensitivity.** The whole chain is rerun for HAND = 1, 2, 3 and 5 m, stream thresholds of 1, 2 and 3 km², and building confidence of 0.65, 0.70 and 0.75. Slope, HAND and exposure are also recomputed on two other DEMs (ALOS PALSAR RTC and the bare-earth FABDEM), reprojected to the same 30 m grid (`12_dem_sensitivity.py`).
 
 All decisions, with the alternatives considered, are logged in [`docs/DECISIONS.md`](../../docs/DECISIONS.md).
 
@@ -73,10 +75,12 @@ Steep slopes are shown in [`slope_steep.png`](outputs/figures/slope_steep.png).
 
 ## Limitations & sensitivity
 
-- **The HAND threshold matters most.** With streams ≥ 2 km², exposed residents in the flood-prone zone range from 9,377 (HAND ≤ 1 m) to 42,044 (HAND ≤ 5 m). At HAND ≤ 3 m, the stream threshold moves the count from 23,256 (3 km²) to 28,894 (1 km²). See [`sensitivity_hand.csv`](outputs/tables/sensitivity_hand.csv).
+- **The DEM matters as much as the HAND threshold.** At HAND ≤ 3 m, flood-prone residents are 25,225 with GLO-30, 34,652 with ALOS RTC and 38,920 with the bare-earth FABDEM. The flood-prone area changes less (18.45, 20.53 and 20.93 km²), so the zones move into denser blocks rather than just growing. The HAND ≤ 3 m zones of the other DEMs overlap the GLO-30 zone by 68% and 72% (Jaccard). All three agree about as well with the SGB 2014 *high* class (82–85%), so the chart cannot pick a best DEM. GLO-30 likely gives the low end: roofs and trees in a surface model raise the ground near streams. See [`dem_sensitivity_exposure.csv`](outputs/tables/dem_sensitivity_exposure.csv) and [`dem_sensitivity_agreement.csv`](outputs/tables/dem_sensitivity_agreement.csv).
+- **Steep-slope exposure is small and partly a surface-model effect.** Residents on slopes ≥ 30% are 446 with GLO-30, 370 with ALOS RTC and 57 with FABDEM, while the steep area stays close to 3 km² for all three. This suggests that many steep cells under buildings in GLO-30 come from roof edges, not from the ground.
+- **The HAND threshold.** With streams ≥ 2 km², exposed residents in the flood-prone zone range from 9,377 (HAND ≤ 1 m) to 42,044 (HAND ≤ 5 m). At HAND ≤ 3 m, the stream threshold moves the count from 23,256 (3 km²) to 28,894 (1 km²). See [`sensitivity_hand.csv`](outputs/tables/sensitivity_hand.csv).
 - **Building confidence matters little for people.** "Any hazard" residents range from 25,827 (confidence 0.75) to 26,239 (0.65). The building count changes more (10,556 to 15,799), because low-confidence detections are small and get little population. See [`sensitivity_ob_confidence.csv`](outputs/tables/sensitivity_ob_confidence.csv).
 - **HAND is a terrain index, not a flood model.** It has no rainfall, discharge, return period or drainage network. It marks low ground near streams, not areas that flood with a given probability.
-- **30 m DEM in a dense city.** GLO-30 is a surface model: roofs and trees raise the elevation, and canalized streams under streets are not visible in the terrain. Small streams and narrow valleys are smoothed out.
+- **30 m DEM in a dense city.** GLO-30 is a surface model: roofs and trees raise the elevation, and canalized streams under streets are not visible in the terrain. Small streams and narrow valleys are smoothed out. FABDEM removes buildings and trees with a machine-learning model, which adds its own errors. The stream threshold (2 km²) was kept for all DEMs, not re-tuned for each.
 - **Stream network.** At 2 km², the derived network has about the same length as the Atlas streams (ratio 0.98). Within 60 m, it finds 63.8% of the Atlas streams (96.3% of canalized reaches, 53.8% of natural reaches). Because the Atlas was used to choose the threshold, it is not an independent validation of the network.
 - **The SGB comparison is agreement, not validation.** The 2014 chart also defines inundation classes from height above drainage, on a different DEM. Agreement is expected in part by construction. The 2012 sectors are only four polygons, so they serve as a qualitative check. The 2012 flood sector in Vila Itatiaia – Santa Rafaela lies at the head of a small stream: only 7.5% of its cells have HAND ≤ 3 m, so the 2 km² network misses it.
 - **Population.** Census tracts are from 2022 and buildings from Open Buildings v3. Population per building assumes that people are spread by footprint area, so it ignores building height and use (commercial and industrial buildings get residents too). In the main run, 7 people could not be allocated (one tract with population and no detected buildings).
@@ -116,6 +120,8 @@ python projects/01-hazard-exposure-montes-claros/scripts/08_figures.py          
 python projects/01-hazard-exposure-montes-claros/scripts/09_web_map.py            # interactive map
 python projects/01-hazard-exposure-montes-claros/scripts/10_one_pager.py          # one-page PDF summary
 python projects/01-hazard-exposure-montes-claros/scripts/11_site_assets.py        # copy outputs to the Quarto site
+# 02b_fabdem_gee.js: run in the Earth Engine Code Editor, save the GeoTIFF to data/raw/dem/fabdem/
+python projects/01-hazard-exposure-montes-claros/scripts/12_dem_sensitivity.py    # DEM sensitivity (ALOS RTC, FABDEM)
 ```
 
 The Planning Regions and the Atlas streams are not distributed here (see Data). To reproduce the Montes Claros run exactly, request them from their authors and save them at the paths listed in the YAML.
@@ -124,7 +130,7 @@ The Planning Regions and the Atlas streams are not distributed here (see Data). 
 
 Author: Samuel Marques. Code under the MIT licence; text and figures under CC BY 4.0.
 
-Data: Copernicus DEM GLO-30 (© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA); Google Open Buildings v3 (Sirko et al., 2021); IBGE, Censo Demográfico 2022; Kontur Population (2023); CPRM/SGB (2012, 2014); Leite (2006) and Montes Claros Decree 3,393/2016 for the Planning Regions; Leite & Marques (2026), *Atlas hidrográfico de Montes Claros – MG*, Editora Unimontes, ISBN 978-85-7739-852-2; Natural Earth.
+Data: Copernicus DEM GLO-30 (© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA); ALOS PALSAR RTC DEM (ASF DAAC, includes material © JAXA/METI 2007); FABDEM V1-2 (Hawker et al., 2022, *Environ. Res. Lett.* 17, 024016; produced using Copernicus WorldDEM-30 © DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018, provided under COPERNICUS by the European Union and ESA); Google Open Buildings v3 (Sirko et al., 2021); IBGE, Censo Demográfico 2022; Kontur Population (2023); CPRM/SGB (2012, 2014); Leite (2006) and Montes Claros Decree 3,393/2016 for the Planning Regions; Leite & Marques (2026), *Atlas hidrográfico de Montes Claros – MG*, Editora Unimontes, ISBN 978-85-7739-852-2; Natural Earth.
 
 Suggested citation:
 
