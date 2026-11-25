@@ -39,10 +39,9 @@ import rasterio
 from rasterio.features import geometry_mask, rasterize
 
 from geoportfolio import terrain
-from geoportfolio.io import load_aoi, load_config
+from geoportfolio.io import has_layer, load_aoi, load_config
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-TABLES = PROJECT_DIR / "outputs" / "tables"
 
 
 def read(path):
@@ -85,6 +84,7 @@ def main(city: str) -> None:
     metric = cfg["crs"]["metric"]
     I = cfg["paths"]["interim_p01"]
     P = cfg["paths"]["processed_p01"]
+    TABLES = cfg["paths"]["outputs_p01"] / "tables"
     res = cfg["terrain"]["resolution_m"]
     cell_km2 = res * res / 1e6
     acc_thr, h_main, s_thr = th["stream_threshold_km2_main"], th["hand_m_main"], th["slope_pct_legal"]
@@ -98,10 +98,13 @@ def main(city: str) -> None:
     aoi = load_aoi(cfg)
     inside = geometry_mask(aoi.geometry, out_shape=shape, transform=transform, invert=True)
 
-    sgb = gpd.read_file(cfg["paths"]["sgb_inundation_2014"]).to_crs(metric)
-    sgb["code"] = sgb["CLASSE"].str[0].map({"A": 3, "M": 2, "B": 1})
-    sgb_codes = rasterize(((g, c) for g, c in zip(sgb.geometry, sgb["code"]) if c == c),
-                          out_shape=shape, transform=transform, fill=0, dtype="uint8")
+    has_sgb = has_layer(cfg, "sgb_inundation_2014")
+    sgb_codes = np.zeros(shape, dtype="uint8")   # sem carta do SGB: tabela de concordância não é escrita
+    if has_sgb:
+        sgb = gpd.read_file(cfg["paths"]["sgb_inundation_2014"]).to_crs(metric)
+        sgb["code"] = sgb["CLASSE"].str[0].map({"A": 3, "M": 2, "B": 1})
+        sgb_codes = rasterize(((g, c) for g, c in zip(sgb.geometry, sgb["code"]) if c == c),
+                              out_shape=shape, transform=transform, fill=0, dtype="uint8")
     sgb_high = inside & (sgb_codes == 3)
     sgb_hm = inside & (sgb_codes >= 2)
     sgb_any = inside & (sgb_codes >= 1)
@@ -153,7 +156,8 @@ def main(city: str) -> None:
         for h in th["hand_m"]:
             add("flood-prone (HAND)", f"HAND <= {h} m; streams >= {acc_thr:g} km2",
                 inside & (d["hand"] <= h), hand_b <= h)
-        add("any hazard", f"slope >= {s_thr}% or HAND <= {h_main} m ({acc_thr:g} km2) or SGB 2012",
+        add("any hazard", f"slope >= {s_thr}% or HAND <= {h_main} m ({acc_thr:g} km2)"
+            + (" or SGB 2012" if sector.any() else ""),
             None, (slope_b >= s_thr) | (hand_b <= h_main) | sector)
 
         for h in th["hand_m"]:
@@ -185,7 +189,8 @@ def main(city: str) -> None:
     t_sgb = pd.DataFrame(sgb_rows)
     t_agr = pd.DataFrame(agr_rows)
     t_exp.to_csv(TABLES / "dem_sensitivity_exposure.csv", index=False)
-    t_sgb.to_csv(TABLES / "dem_sensitivity_vs_sgb2014.csv", index=False)
+    if has_sgb:
+        t_sgb.to_csv(TABLES / "dem_sensitivity_vs_sgb2014.csv", index=False)
     t_agr.to_csv(TABLES / "dem_sensitivity_agreement.csv", index=False)
 
     print("\nPopulação exposta por MDE:")
@@ -194,8 +199,9 @@ def main(city: str) -> None:
     print("\nÁrea (km²) por MDE:")
     print(t_exp.pivot_table(index=["hazard", "parameter"], columns="dem", values="area_km2",
                             sort=False).to_string())
-    print("\nHAND x SGB 2014:")
-    print(t_sgb.to_string(index=False))
+    if has_sgb:
+        print("\nHAND x SGB 2014:")
+        print(t_sgb.to_string(index=False))
     print("\nConcordância com o GLO-30:")
     print(t_agr.drop(columns="dem_label").to_string(index=False))
 

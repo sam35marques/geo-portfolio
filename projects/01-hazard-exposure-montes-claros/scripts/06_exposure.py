@@ -31,10 +31,9 @@ import numpy as np
 import pandas as pd
 import rasterio
 
-from geoportfolio.io import load_config
+from geoportfolio.io import has_layer, load_config, read_sgb_sectors
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-TABLES = PROJECT_DIR / "outputs" / "tables"
 
 
 def sample(raster_path, xs, ys):
@@ -68,6 +67,7 @@ def main(city: str) -> None:
     metric = cfg["crs"]["metric"]
     I = cfg["paths"]["interim_p01"]
     P = cfg["paths"]["processed_p01"]
+    TABLES = cfg["paths"]["outputs_p01"] / "tables"
 
     b = gpd.read_file(P / "buildings_population.gpkg", layer="buildings")
     b = b[b.inside_aoi].copy()
@@ -79,16 +79,22 @@ def main(city: str) -> None:
     for thr in th["stream_threshold_km2"]:
         b[f"hand_acc{thr:g}"] = sample(I / f"hand_glo30_acc{thr:g}km2.tif", xs, ys)
 
-    zip_path = cfg["paths"]["sgb_risk_zip"].as_posix()
-    sect = gpd.read_file(f"zip://{zip_path}!Shape/MG_MC_SR_CPRM_atualizado.shp").to_crs(metric)
-    j = gpd.sjoin(gpd.GeoDataFrame(geometry=pts, crs=b.crs), sect[["NUM_SETOR", "geometry"]],
-                  how="left", predicate="within")
-    b["sgb2012_sector"] = j[~j.index.duplicated()]["NUM_SETOR"]
+    # camadas do SGB: só se a cidade tiver (sem elas, o perigo "setor" fica vazio
+    # e a linha de referência SGB 2014 não é escrita)
+    has_sectors, has_sgb14 = has_layer(cfg, "sgb_risk_zip"), has_layer(cfg, "sgb_inundation_2014")
+    b["sgb2012_sector"] = None
+    if has_sectors:
+        sect = read_sgb_sectors(cfg)
+        j = gpd.sjoin(gpd.GeoDataFrame(geometry=pts, crs=b.crs), sect[["NUM_SETOR", "geometry"]],
+                      how="left", predicate="within")
+        b["sgb2012_sector"] = j[~j.index.duplicated()]["NUM_SETOR"]
 
-    sgb14 = gpd.read_file(cfg["paths"]["sgb_inundation_2014"]).to_crs(metric)
-    sgb14 = sgb14[sgb14["CLASSE"].str[0].isin(["A", "M"])]
-    j = gpd.sjoin(gpd.GeoDataFrame(geometry=pts, crs=b.crs), sgb14[["geometry"]], how="left", predicate="within")
-    b["sgb2014_inund_high_med"] = ~j[~j.index.duplicated()]["index_right"].isna()
+    b["sgb2014_inund_high_med"] = False
+    if has_sgb14:
+        sgb14 = gpd.read_file(cfg["paths"]["sgb_inundation_2014"]).to_crs(metric)
+        sgb14 = sgb14[sgb14["CLASSE"].str[0].isin(["A", "M"])]
+        j = gpd.sjoin(gpd.GeoDataFrame(geometry=pts, crs=b.crs), sgb14[["geometry"]], how="left", predicate="within")
+        b["sgb2014_inund_high_med"] = ~j[~j.index.duplicated()]["index_right"].isna()
 
     # --- máscaras principais -------------------------------------------------------
     s_thr, h_main, acc_main = th["slope_pct_legal"], th["hand_m_main"], th["stream_threshold_km2_main"]
@@ -118,13 +124,14 @@ def main(city: str) -> None:
                 rows.append(summarize(bc, bc[f"hand_acc{thr:g}"] <= h, pc,
                                       {"hazard": "flood-prone (HAND)", "parameter": f"HAND <= {h} m; streams >= {thr:g} km2",
                                        "confidence_min": c}))
-        rows.append(summarize(bc, se, pc, {"hazard": "SGB 2012 risk sector", "parameter": "high (4 sectors)", "confidence_min": c}))
+        if has_sectors:
+            rows.append(summarize(bc, se, pc, {"hazard": "SGB 2012 risk sector", "parameter": "high (4 sectors)", "confidence_min": c}))
         fl = bc[f"hand_acc{acc_main:g}"] <= h_main
-        rows.append(summarize(bc, st | fl | se, pc,
-                              {"hazard": "any hazard", "parameter": f"slope >= {s_thr}% or HAND <= {h_main} m ({acc_main:g} km2) or SGB 2012",
-                               "confidence_min": c}))
-        rows.append(summarize(bc, bc["sgb2014_inund_high_med"], pc,
-                              {"hazard": "reference: SGB 2014 inundation", "parameter": "Alta + Media", "confidence_min": c}))
+        any_par = f"slope >= {s_thr}% or HAND <= {h_main} m ({acc_main:g} km2)" + (" or SGB 2012" if has_sectors else "")
+        rows.append(summarize(bc, st | fl | se, pc, {"hazard": "any hazard", "parameter": any_par, "confidence_min": c}))
+        if has_sgb14:
+            rows.append(summarize(bc, bc["sgb2014_inund_high_med"], pc,
+                                  {"hazard": "reference: SGB 2014 inundation", "parameter": "Alta + Media", "confidence_min": c}))
     t = pd.DataFrame(rows)
     t.to_csv(TABLES / "exposure_summary.csv", index=False)
 
@@ -151,8 +158,35 @@ def main(city: str) -> None:
     print("\nSensibilidade à confiança do Open Buildings:")
     print(so.pivot_table(index="hazard", columns="confidence_min", values=["buildings", "population"]).to_string())
 
+    # --- edificações sem HAND -------------------------------------------------------
+    # Células cuja água escoa para um ponto sem saída (plano não resolvido pelo pysheds)
+    # antes de chegar à drenagem ficam sem HAND (NaN) e contam como "não expostas".
+    # A tabela registra quanto isso pesa, para ir às limitações.
+    bc = b[b.confidence >= main_c]
+    pc_main = pop_cols[main_c]
+    und = pd.DataFrame([{
+        "stream_threshold_km2": thr,
+        "buildings_hand_undefined": int(bc[f"hand_acc{thr:g}"].isna().sum()),
+        "population_hand_undefined": int(round(bc.loc[bc[f"hand_acc{thr:g}"].isna(), pc_main].sum())),
+        "population_hand_undefined_pct": round(100 * bc.loc[bc[f"hand_acc{thr:g}"].isna(), pc_main].sum()
+                                               / bc[pc_main].sum(), 2),
+        "confidence_min": main_c,
+    } for thr in th["stream_threshold_km2"]])
+    und.to_csv(TABLES / "hand_undefined.csv", index=False)
+    print("\nEdificações sem HAND (escoam para um ponto sem saída antes da drenagem):")
+    print(und.to_string(index=False))
+
     # --- por Região de Planejamento (configuração principal) -----------------------
-    pc = pop_cols[main_c]
+    # só se a cidade tiver regiões; senão o resultado espacial fica no H3 (passo 7)
+    if b["region"].notna().any():
+        exposure_by_region(b, pop_cols[main_c], main_c, TABLES)
+
+    # --- saída por edificação ------------------------------------------------------
+    b.to_file(P / "buildings_exposure.gpkg", layer="buildings", driver="GPKG")
+
+
+def exposure_by_region(b, pc, main_c, TABLES):
+    """Exposição por Região de Planejamento -> exposure_by_region.csv."""
     bc = b[b.confidence >= main_c]
     g = bc.groupby("region")
     reg = pd.DataFrame({
@@ -170,9 +204,6 @@ def main(city: str) -> None:
     print("\nPor Região de Planejamento (confiança 0,75):")
     print(reg.to_string())
     print(f"edificações sem região: {bc.region.isna().sum()}")
-
-    # --- saída por edificação ------------------------------------------------------
-    b.to_file(P / "buildings_exposure.gpkg", layer="buildings", driver="GPKG")
 
 
 if __name__ == "__main__":

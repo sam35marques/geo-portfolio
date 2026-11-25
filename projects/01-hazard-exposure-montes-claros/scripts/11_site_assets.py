@@ -8,32 +8,42 @@ Rodar da raiz do repositório (depois de 08, 09 e 10):
     python projects/01-hazard-exposure-montes-claros/scripts/11_site_assets.py
 """
 
+import argparse
 import shutil
 from pathlib import Path
 
+from geoportfolio.io import load_config
+
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 REPO = PROJECT_DIR.parents[1]
-DEST = REPO / "site" / "projects" / "hazard-exposure-montes-claros"
 
 FILES = [
     "outputs/maps/hero_exposure_h3.png",
-    "outputs/maps/location_montes_claros.png",
+    "outputs/maps/location_{city}.png",
     "outputs/figures/hand_flood_prone.png",
     "outputs/figures/slope_steep.png",
-    "outputs/figures/hand_vs_sgb.png",
+    "outputs/figures/hand_vs_sgb.png",          # só existe para cidades com carta do SGB
     "outputs/figures/kontur_vs_census.png",
     "outputs/web/exposure_map.html",
     "outputs/one-pager.pdf",
 ]
 
 
-def main() -> None:
-    DEST.mkdir(parents=True, exist_ok=True)
+def main(city: str) -> None:
+    cfg = load_config(city)
+    out = cfg["paths"]["outputs_p01"]                      # pasta outputs/ da cidade
+    dest = REPO / "site" / "projects" / cfg["project"]["site_slug"]
+    dest.mkdir(parents=True, exist_ok=True)
     for rel in FILES:
-        src = PROJECT_DIR / rel
-        shutil.copy2(src, DEST / src.name)
+        src = out.parent / rel.format(city=city)
+        if not src.exists():
+            print("skipped (not produced for this city):", src.name)
+            continue
+        shutil.copy2(src, dest / src.name)
         print("copied:", src.name)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--city", default="montes_claros")
+    main(parser.parse_args().city)

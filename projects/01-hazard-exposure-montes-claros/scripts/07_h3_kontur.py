@@ -30,7 +30,6 @@ from geoportfolio.h3utils import cells_to_gdf, points_to_h3
 from geoportfolio.io import load_aoi, load_config
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-TABLES = PROJECT_DIR / "outputs" / "tables"
 
 
 def main(city: str) -> None:
@@ -38,6 +37,7 @@ def main(city: str) -> None:
     th = cfg["thresholds"]
     res = cfg["h3"]["resolution"]
     P = cfg["paths"]["processed_p01"]
+    TABLES = cfg["paths"]["outputs_p01"] / "tables"
     pc = f"pop_c{int(round(th['open_buildings_confidence_main'] * 100)):03d}"
 
     # --- 1. Kontur ----------------------------------------------------------------
@@ -90,7 +90,7 @@ def main(city: str) -> None:
     hexes["diff_kontur_minus_census"] = hexes.pop_kontur - hexes.pop_census
     hexes["share_exposed_any"] = np.where(hexes.pop_census > 0, hexes.pop_exposed_any / hexes.pop_census, 0)
 
-    out_gpkg = PROJECT_DIR / "outputs" / "exposure_h3_r8.gpkg"
+    out_gpkg = cfg["paths"]["outputs_p01"] / "exposure_h3_r8.gpkg"
     hexes.round(2).to_file(out_gpkg, layer="h3_r8", driver="GPKG")
     hexes.drop(columns="geometry").round(2).to_csv(TABLES / "h3_population_comparison.csv", index=False)
 

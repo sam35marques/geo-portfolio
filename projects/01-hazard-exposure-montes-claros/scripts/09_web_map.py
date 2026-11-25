@@ -29,7 +29,7 @@ from rasterio.features import geometry_mask, shapes
 from shapely.geometry import shape
 
 from geoportfolio import carto
-from geoportfolio.io import load_aoi, load_config
+from geoportfolio.io import has_layer, load_aoi, load_config, read_sgb_sectors
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 
@@ -56,7 +56,9 @@ def main(city: str) -> None:
     aoi = load_aoi(cfg)
     poly = aoi.geometry.iloc[0]
 
-    hexes = gpd.read_file(PROJECT_DIR / "outputs" / "exposure_h3_r8.gpkg").to_crs(4326)
+    out_dir = cfg["paths"]["outputs_p01"]
+    has_sgb12 = has_layer(cfg, "sgb_risk_zip")
+    hexes = gpd.read_file(out_dir / "exposure_h3_r8.gpkg").to_crs(4326)
     for c in ["pop_census", "pop_kontur", "pop_exposed_any", "pop_exposed_flood", "pop_exposed_slope", "diff_kontur_minus_census"]:
         hexes[c] = hexes[c].round(0).astype(int)
     hexes["share_exposed_pct"] = (100 * hexes.share_exposed_any).round(1)
@@ -66,7 +68,7 @@ def main(city: str) -> None:
     # fundo OpenStreetMap (sem chave de API), com opacidade reduzida para ficar discreto
     attrib = ('© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors · '
               "Data: IBGE Census 2022 · Google Open Buildings v3 · Copernicus GLO-30 · "
-              "Kontur Population (CC BY 4.0) · SGB/CPRM 2012 · Map: Samuel Marques")
+              "Kontur Population (CC BY 4.0) · " + ("SGB/CPRM 2012 · " if has_sgb12 else "") + "Map: Samuel Marques")
     folium.TileLayer("OpenStreetMap", attr=attrib, name="Basemap", opacity=0.45, control=False).add_to(m)
 
     # --- Exposed residents --------------------------------------------------------
@@ -115,13 +117,13 @@ def main(city: str) -> None:
                                              "weight": 0.3, "fillOpacity": 0.55}).add_to(m)
 
     # --- SGB 2012 --------------------------------------------------------------------
-    zip_path = cfg["paths"]["sgb_risk_zip"].as_posix()
-    sect = gpd.read_file(f"zip://{zip_path}!Shape/MG_MC_SR_CPRM_atualizado.shp").to_crs(4326)
-    sect = sect[["NUM_SETOR", "LOCAL", "TIPOLOGIA", "GRAU_RISCO", "geometry"]]
-    folium.GeoJson(sect, name="SGB 2012 risk sectors",
-                   style_function=lambda f: {"fillColor": "none", "color": carto.OKABE_ITO["vermillion"], "weight": 2},
-                   tooltip=folium.GeoJsonTooltip(fields=["NUM_SETOR", "LOCAL", "TIPOLOGIA", "GRAU_RISCO"],
-                                                 aliases=["Sector", "Place", "Process", "Risk level"])).add_to(m)
+    if has_sgb12:   # só para cidades com setores do SGB no YAML
+        sect = read_sgb_sectors(cfg, 4326)
+        sect = sect[["NUM_SETOR", "LOCAL", "TIPOLOGIA", "GRAU_RISCO", "geometry"]]
+        folium.GeoJson(sect, name="SGB 2012 risk sectors",
+                       style_function=lambda f: {"fillColor": "none", "color": carto.OKABE_ITO["vermillion"], "weight": 2},
+                       tooltip=folium.GeoJsonTooltip(fields=["NUM_SETOR", "LOCAL", "TIPOLOGIA", "GRAU_RISCO"],
+                                                     aliases=["Sector", "Place", "Process", "Risk level"])).add_to(m)
 
     # --- legenda e créditos ----------------------------------------------------------
     # Legenda e controles compactos: o mapa é embutido num quadro (iframe) no site,
@@ -142,7 +144,7 @@ def main(city: str) -> None:
     m.get_root().html.add_child(folium.Element(legend))
     title = ('<div class="p01-title" style="position:fixed;top:10px;left:50px;z-index:9999;'
              'background:rgba(255,255,255,.92);padding:4px 8px;font:12px sans-serif;border-radius:4px;'
-             'box-shadow:0 1px 4px rgba(0,0,0,.3)"><b>Hazard exposure in Montes Claros</b> · H3 r8</div>')
+             'box-shadow:0 1px 4px rgba(0,0,0,.3)"><b>Hazard exposure in ' + cfg["city"]["name"] + '</b> · H3 r8</div>')
     m.get_root().html.add_child(folium.Element(title))
     m.get_root().html.add_child(folium.Element(
         "<style>.leaflet-control-attribution{font-size:9px}"
@@ -156,7 +158,7 @@ def main(city: str) -> None:
     b = hexes.total_bounds
     m.fit_bounds([[b[1], b[0]], [b[3], b[2]]], padding=(10, 10))
 
-    out = PROJECT_DIR / "outputs" / "web" / "exposure_map.html"
+    out = out_dir / "web" / "exposure_map.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     m.save(out)
     print(f"-> {out} ({out.stat().st_size / 1e6:.1f} MB) | HAND polígonos: {len(hand)} | declividade: {len(steep)}")

@@ -20,6 +20,18 @@ aoi:
   region_name_field: "Nome_Polo"   # campo com o nome da região
   gap_closing_m: 5            # fecha frestas entre regiões vizinhas na união (DECISIONS)
   buffer_m: 0                 # buffer em metros aplicado à AOI (documentar ao mudar)
+  label: "urban perimeter"   # como a AOI é chamada nos mapas e textos
+
+# Identidade do estudo de caso (cabeçalho das pranchas, one-pager, site)
+project:
+  label: "Project 01"
+  site_url: "https://sam35marques.github.io/geo-portfolio/projects/hazard-exposure-montes-claros.html"
+  site_slug: "hazard-exposure-montes-claros"   # pasta em site/projects/
+  # fontes que aparecem no rodapé de todos os mapas da cidade
+  map_credits: "Copernicus GLO-30 · Atlas Hidrográfico de Montes Claros (2026) · Planning Regions (Leite 2006; Decree 3,393/2016)"
+  # frases que dependem do que o mapa mostra (escritas depois de olhar o mapa)
+  narrative:
+    slope_where: "Steep land is concentrated on the western ridge; "
 
 h3:
   resolution: 8               # mesma resolução da Kontur Population
@@ -69,6 +81,8 @@ terrain:
       files: "data/raw/dem/fabdem/*.tif"
 
 sources:
+  # shapefile dos setores SGB 2012 dentro do zip baixado (paths.sgb_risk_zip)
+  sgb_risk_shp_in_zip: "Shape/MG_MC_SR_CPRM_atualizado.shp"
   # API de malhas do IBGE (limite municipal; GeoJSON em EPSG:4674 / SIRGAS 2000)
   municipality_url: "https://servicodados.ibge.gov.br/api/v3/malhas/municipios/3143302?formato=application/vnd.geo+json&qualidade=maxima"
 

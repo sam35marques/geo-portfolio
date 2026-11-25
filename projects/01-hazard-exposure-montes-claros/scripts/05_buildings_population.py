@@ -23,7 +23,7 @@ import pandas as pd
 from shapely.geometry import box
 
 from geoportfolio.exposure import assign_by_point, dasymetric_population, read_open_buildings_csv
-from geoportfolio.io import load_aoi, load_config, load_planning_regions
+from geoportfolio.io import load_aoi, load_config, load_regions
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 
@@ -56,8 +56,8 @@ def main(city: str) -> None:
     tract_pop = tracts.set_index("CD_SETOR")["pop_covered"]
 
     b["tract"] = assign_by_point(b, tracts, ["CD_SETOR"])["CD_SETOR"]
-    regions = load_planning_regions(cfg)
-    b["region"] = assign_by_point(b, regions, ["region"])["region"]
+    regions = load_regions(cfg)   # None se a cidade não tem Regiões de Planejamento
+    b["region"] = assign_by_point(b, regions, ["region"])["region"] if regions is not None else None
     aoi = load_aoi(cfg)
     b["inside_aoi"] = b.geometry.representative_point().within(aoi.geometry.iloc[0])
     print(f"Fora de qualquer setor do município: {b.tract.isna().sum():,} "
@@ -87,7 +87,7 @@ def main(city: str) -> None:
             "population_not_allocated": int(round(lost["pop_covered"].sum())),
         })
     t = pd.DataFrame(rows)
-    out_tab = PROJECT_DIR / "outputs" / "tables" / "dasymetric_summary.csv"
+    out_tab = cfg["paths"]["outputs_p01"] / "tables" / "dasymetric_summary.csv"
     t.to_csv(out_tab, index=False)
     print(t.T.to_string())
 

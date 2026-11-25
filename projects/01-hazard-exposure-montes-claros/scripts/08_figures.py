@@ -33,12 +33,15 @@ from rasterio.features import geometry_mask, rasterize
 
 from geoportfolio import carto
 from geoportfolio import dashboard as dash
-from geoportfolio.io import load_aoi, load_config, load_municipality, load_planning_regions
+from geoportfolio.io import has_layer, load_aoi, load_config, load_municipality, load_regions, read_sgb_sectors
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-TABLES = PROJECT_DIR / "outputs" / "tables"
-MAPS = PROJECT_DIR / "outputs" / "maps"
-FIGS = PROJECT_DIR / "outputs" / "figures"
+# Pastas de saída e textos da cidade: definidos em build_context() a partir do YAML,
+# para o mesmo script servir a qualquer município.
+TABLES = MAPS = FIGS = None
+CITY = AOI_LABEL = AOI_SHORT = PROJ = SRC_BASE = STREAM_LABEL = ""
+HAS_REGIONS = False
+NARRATIVE = {}
 
 MAP_RECT = [0.225, 0.075, 0.49, 0.835]     # área do mapa central
 LOC_RECT = [0.226, 0.715, 0.085, 0.19]     # localizador (canto superior esquerdo do mapa)
@@ -46,8 +49,6 @@ CARD_X, CARD_W = 0.735, 0.24
 INK, INK2, MUTED = dash.DASH["ink"], dash.DASH["ink2"], dash.DASH["muted"]
 OKABE = carto.OKABE_ITO
 fmt = dash.fmt_int
-SRC_BASE = ("Copernicus GLO-30 · Atlas Hidrográfico de Montes Claros (2026) · "
-            "Planning Regions (Leite 2006; Decree 3,393/2016)")
 REPO = "github.com/sam35marques/geo-portfolio"
 
 
@@ -55,15 +56,37 @@ REPO = "github.com/sam35marques/geo-portfolio"
 # preparação
 # =============================================================================
 def prepare_streams(cfg, aoi):
-    """Córregos do Atlas recortados pelo perímetro urbano (camada derivada em data/interim).
+    """Córregos para o fundo dos mapas, recortados pela área de estudo (data/interim).
 
-    O arquivo original em data/raw não é alterado.
+    Com hidrografia de referência no YAML (Atlas), usa os córregos mapeados; sem ela,
+    usa a rede derivada do MDE (área de contribuição ≥ limiar principal), a mesma que
+    define o HAND. O arquivo original em data/raw não é alterado.
     """
+    if not has_layer(cfg, "atlas_streams"):
+        return derived_streams(cfg, aoi)
     s = gpd.read_file(cfg["paths"]["atlas_streams"]).to_crs(aoi.crs)
     s = s.clip(aoi)[["NORIOCOMP", "TIPO_CURSO", "geometry"]]
     s = s[~s.is_empty]
     out = cfg["paths"]["atlas_streams_urban"]
     out.parent.mkdir(parents=True, exist_ok=True)
+    s.to_file(out, layer="streams", driver="GPKG")
+    return s
+
+
+def derived_streams(cfg, aoi):
+    """Rede de drenagem derivada do GLO-30 (células com acumulação ≥ limiar), como polígonos."""
+    from rasterio.features import shapes
+    from shapely.geometry import shape
+    thr = cfg["thresholds"]["stream_threshold_km2_main"]
+    with rasterio.open(cfg["paths"]["interim_p01"] / "flowacc_km2_glo30.tif") as src:
+        win = rasterio.windows.from_bounds(*aoi.buffer(2000).total_bounds, src.transform).round_offsets().round_lengths()
+        acc = src.read(1, window=win)
+        tr = src.window_transform(win)
+    m = acc >= thr
+    geoms = [shape(g) for g, v in shapes(m.astype("uint8"), mask=m, transform=tr) if v == 1]
+    s = gpd.GeoDataFrame(geometry=geoms, crs=aoi.crs).clip(aoi)
+    s = s[~s.is_empty]
+    out = cfg["paths"]["interim_p01"] / "streams_derived_urban.gpkg"
     s.to_file(out, layer="streams", driver="GPKG")
     return s
 
@@ -79,7 +102,7 @@ def study_area_table(cfg, aoi, regions):
         "municipality_area_km2": round(mun.area.sum() / 1e6, 1),
         "municipality_population_2022": int(das.population_municipality_census),
         "urban_perimeter_area_km2": round(aoi.area.sum() / 1e6, 1),
-        "planning_regions": int(len(regions)),
+        "planning_regions": int(len(regions)) if regions is not None else 0,
         "population_in_perimeter_dasymetric": int(das.population_in_perimeter),
         "share_population_in_perimeter_pct": round(100 * das.population_in_perimeter / das.population_municipality_census, 1),
         "perimeter_centroid_lat": round(c.y, 3), "perimeter_centroid_lon": round(c.x, 3),
@@ -103,8 +126,8 @@ def read_masked(path, extent, geom):
 # blocos comuns
 # =============================================================================
 def new_board(title_left):
-    return dash.Dashboard(title_left, "Project 01 · open, reproducible geospatial portfolio",
-                          "MONTES CLAROS · MINAS GERAIS · BRAZIL", "Samuel Marques · 2026")
+    return dash.Dashboard(title_left, f"{PROJ} · open, reproducible geospatial portfolio",
+                          f"{CITY.upper()} · MINAS GERAIS · BRAZIL", "Samuel Marques · 2026")
 
 
 def city_map(D, ctx, labels=False):
@@ -112,11 +135,51 @@ def city_map(D, ctx, labels=False):
     ax = D.fig.add_axes(MAP_RECT)
     vx0, vx1 = dash.city_base(ax, ctx["aoi"], ctx["regions"], ctx["streams"], ctx["extent"], labels=labels)
     x0, y0, x1, y1 = ctx["extent"]
-    dash.locator(D.fig, LOC_RECT, ctx["countries"], ctx["states"], ctx["state_code"], ctx["lonlat"],
-                 "Montes Claros")
+    dash.locator(D.fig, LOC_RECT, ctx["countries"], ctx["states"], ctx["state_code"], ctx["lonlat"], CITY)
     dash.north(ax, vx1 - 1300, y1 - 1200)
     dash.scalebar(ax, vx1 - 2600, y0 + 700)
     return ax, vx0, vx1
+
+
+def place_callouts(D, ax, ctx, hexes, points, w, h, step=250, margin=250):
+    """Escolhe onde pôr cada balão, sempre fora do desenho do mapa.
+
+    Testa centros numa grade (passo `step` m) dentro do quadro visível e fica, para cada
+    ponto, com o mais próximo cujo retângulo não toca: a área de estudo e os hexágonos
+    (com folga `margin`), o localizador, o norte, a escala e os balões já colocados.
+    Devolve a lista de centros (x, y) em coordenadas do mapa.
+    """
+    from shapely.geometry import box as sbox
+    from shapely.ops import unary_union
+
+    vx0, vx1 = ax.get_xlim()
+    vy0, vy1 = ax.get_ylim()
+    to_data = lambda fx, fy: ax.transData.inverted().transform(D.fig.transFigure.transform((fx, fy)))
+    lx, ly, lw, lh = LOC_RECT
+    (ax0, ay0), (ax1, ay1) = to_data(lx, ly), to_data(lx + lw, ly + lh)
+    # contorno convexo: o balão não entra nem nas reentrâncias do contorno da cidade
+    obstacles = [unary_union([ctx["poly"], *hexes.geometry]).convex_hull.buffer(margin),
+                 sbox(ax0, ay0, ax1, ay1).buffer(margin),                       # localizador
+                 sbox(vx1 - 1900, vy1 - 2300, vx1 - 700, vy1 - 300),            # norte
+                 sbox(vx1 - 2900, vy0, vx1 - 400, vy0 + 1400)]                  # escala
+    xs = np.arange(vx0 + w / 2 + 150, vx1 - w / 2 - 150, step)
+    ys = np.arange(vy0 + h / 2 + 150, vy1 - h / 2 - 150, step)
+    placed, centres = [], []
+    for px, py in points:
+        best = None
+        for cx in xs:
+            for cy in ys:
+                r = sbox(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
+                if any(r.intersects(o) for o in obstacles + placed):
+                    continue
+                d = (cx - px) ** 2 + (cy - py) ** 2
+                if best is None or d < best[0]:
+                    best = (d, cx, cy, r)
+        if best is None:                       # sem espaço livre: fica acima do ponto
+            best = (0, px, py + 1200, sbox(px - w / 2, py + 750, px + w / 2, py + 1650))
+        placed.append(best[3].buffer(150))     # folga entre balões
+        centres.append((best[1], best[2]))
+    return centres
 
 
 def legend_swatches(D, x, y, items, size=9.5, step=0.034, box=(0.022, 0.024)):
@@ -135,26 +198,32 @@ def legend_swatches(D, x, y, items, size=9.5, step=0.034, box=(0.022, 0.024)):
     return y
 
 
-def base_items():
-    return [(dash.STREAM, "streams (Atlas Hidrográfico)", "line"),
-            (dash.REGION_LINE, "planning regions", "line"),
-            (INK, "urban perimeter", "line")]
+def base_items(short=False):
+    """Legenda das camadas de fundo (córregos, regiões se houver, contorno da área)."""
+    items = [(dash.STREAM, "streams" if short else STREAM_LABEL, "line")]
+    if HAS_REGIONS:
+        items.append((dash.REGION_LINE, "planning regions", "line"))
+    return items + [(INK, AOI_LABEL, "line")]
 
 
 # =============================================================================
 # pranchas
 # =============================================================================
 def board_location(ctx, sa, mun):
-    D = new_board("Study area · Montes Claros, Brazil")
-    y = D.title(0.03, 0.895, "Where is\nMontes Claros?",
-                f"Project 01 studies the urban perimeter of {sa.municipality}, in the north of "
+    D = new_board(f"Study area · {CITY}, Brazil")
+    y = D.title(0.03, 0.895, f"Where is\n{CITY}?",
+                f"{PROJ} studies the {AOI_LABEL} of {sa.municipality}, in the north of "
                 f"{sa.state} state, south-eastern Brazil.")
     y = D.kpi_big(0.03, y, fmt(sa.municipality_population_2022), "Residents of the municipality", "CENSUS 2022")
     D.kpi_row(0.03, y, "sector", "purple", "Municipality area", f"{fmt(sa.municipality_area_km2)} km²")
-    D.kpi_row(0.03, y - 0.085, "hex", "blue", "Urban perimeter (study area)", f"{sa.urban_perimeter_area_km2:.0f} km²")
-    D.kpi_row(0.03, y - 0.170, "people", "green", "Planning Regions", f"{sa.planning_regions}")
+    D.kpi_row(0.03, y - 0.085, "hex", "blue", f"{AOI_LABEL.capitalize()} (study area)",
+              f"{sa.urban_perimeter_area_km2:.0f} km²")
+    if HAS_REGIONS:
+        D.kpi_row(0.03, y - 0.170, "people", "green", "Planning Regions", f"{sa.planning_regions}")
+    else:
+        D.kpi_row(0.03, y - 0.170, "people", "green", "H3 r8 hexagons (reporting units)", f"{len(ctx['hexes'])}")
     D.ring(0.03, y - 0.285, sa.share_population_in_perimeter_pct / 100, fmt(sa.population_in_perimeter_dasymetric),
-           "residents inside the urban perimeter; the ring shows their share of the municipality",
+           f"residents inside the {AOI_LABEL}; the ring shows their share of the municipality",
            color=OKABE["blue"])
 
     # (a) América do Sul / Brasil / Minas Gerais
@@ -180,7 +249,7 @@ def board_location(ctx, sa, mun):
     mun_m.plot(ax=a2, color="#E9EBF4", edgecolor=INK2, linewidth=0.9)
     ctx["aoi"].plot(ax=a2, color="#9AA3C7", edgecolor=INK, linewidth=0.8)
     a2.set_aspect("equal"); a2.axis("off")
-    a2.text(0.02, 0.99, "b) Municipality and urban perimeter", transform=a2.transAxes, fontsize=9.5,
+    a2.text(0.02, 0.99, f"b) Municipality and {AOI_LABEL}", transform=a2.transAxes, fontsize=9.5,
             weight="semibold", va="top")
     mx0, my0, mx1, my1 = mun_m.total_bounds
     dash.scalebar(a2, mx1 - 10000, my0 + 2000, km=10)
@@ -190,29 +259,36 @@ def board_location(ctx, sa, mun):
     vx0, vx1 = dash.city_base(a3, ctx["aoi"], ctx["regions"], ctx["streams"], ctx["extent"], labels=True,
                               fill="#F7F8FC")
     x0, y0, x1, y1 = ctx["extent"]
-    a3.text(0.02, 0.99, f"c) Urban perimeter: {sa.planning_regions} Planning Regions", transform=a3.transAxes,
+    c_title = (f"c) Urban perimeter: {sa.planning_regions} Planning Regions" if HAS_REGIONS
+               else f"c) {AOI_LABEL.capitalize()} and streams")
+    a3.text(0.02, 0.99, c_title, transform=a3.transAxes,
             fontsize=9.5, weight="semibold", va="top")
     dash.north(a3, vx1 - 900, y0 + 2600)
     dash.scalebar(a3, vx1 - 2600, y0 + 700)
 
     yy = D.card(CARD_X, 0.585, CARD_W, 0.325, "Legend")
     legend_swatches(D, CARD_X + 0.016, yy, [
-        ("#D3D7E6", "Brazil (states)", "box"), ("#9AA3C7", f"{sa.state} / urban perimeter", "box"),
-        (OKABE["vermillion"], "Montes Claros", "box"), ("#E9EBF4", "municipality", "box")] + base_items(),
+        ("#D3D7E6", "Brazil (states)", "box"), ("#9AA3C7", f"{sa.state} / {AOI_LABEL}", "box"),
+        (OKABE["vermillion"], CITY, "box"), ("#E9EBF4", "municipality", "box")] + base_items(),
         size=9, step=0.031)
     yy = D.card(CARD_X, 0.31, CARD_W, 0.25, "About the study area")
+    units = (f"It is divided into {sa.planning_regions} Planning Regions, the units used here to report results. "
+             if HAS_REGIONS else
+             "It is the union of the Census 2022 urban tracts of the district seat; results are reported "
+             "per H3 hexagon. ")
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
-           f"The urban perimeter covers {sa.urban_perimeter_area_km2:.0f} km² of a {fmt(sa.municipality_area_km2)} km² "
+           f"The {AOI_LABEL} covers {sa.urban_perimeter_area_km2:.0f} km² of a {fmt(sa.municipality_area_km2)} km² "
            f"municipality and holds {sa.share_population_in_perimeter_pct:.0f}% of its residents. "
-           f"It is divided into {sa.planning_regions} Planning Regions, the units used here to report results. "
+           + units +
            f"Centre: {abs(sa.perimeter_centroid_lat):.2f}° S, {abs(sa.perimeter_centroid_lon):.2f}° W.", size=9.5)
     yy = D.card(CARD_X, 0.075, CARD_W, 0.21, "Data")
+    src_units = ("Planning Regions: Leite (2006), Decree 3,393/2016, Master Plan LC 53/2016. " if HAS_REGIONS
+                 else "Streams derived from Copernicus GLO-30. ")
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
            "Natural Earth (countries) · IBGE state and municipal boundaries · IBGE Census 2022 · "
-           "Planning Regions: Leite (2006), Decree 3,393/2016, Master Plan LC 53/2016. "
-           "Maps b–c: SIRGAS 2000 / UTM 23S.", size=9, spacing=1.45)
+           + src_units + "Maps b–c: SIRGAS 2000 / UTM 23S.", size=9, spacing=1.45)
     D.footer("Data: Natural Earth · IBGE · " + SRC_BASE, REPO)
-    print("location:", *D.save(MAPS / "location_montes_claros"))
+    print("location:", *D.save(MAPS / f"location_{ctx['city_key']}"))
     plt.close(D.fig)
 
 
@@ -223,27 +299,36 @@ def board_hero(ctx, N):
     colors = plt.get_cmap(carto.EXPOSURE)(np.linspace(0.15, 0.95, len(labels)))
     hexes["cls"] = pd.cut(hexes.pop_exposed_any, bins=bins, labels=False, include_lowest=False)
 
-    # 3 regiões com mais residentes expostos; balão no centro ponderado pela exposição
-    reg = pd.read_csv(TABLES / "exposure_by_region.csv").sort_values("pop_any", ascending=False)
-    cent = gpd.GeoDataFrame(hexes[["pop_exposed_any"]], geometry=hexes.centroid, crs=hexes.crs)
-    cent = gpd.sjoin(cent, ctx["regions"], how="inner", predicate="within")
     top = []
-    for _, r in reg.head(3).iterrows():
-        c = cent[(cent.region == r.region) & (cent.pop_exposed_any > 0)]
-        w = c.pop_exposed_any
-        top.append((r.region.replace("Induatrial", "Industrial"), r.pop_any,
-                    float((c.geometry.x * w).sum() / w.sum()), float((c.geometry.y * w).sum() / w.sum())))
+    if HAS_REGIONS:
+        # 3 regiões com mais residentes expostos; balão no centro ponderado pela exposição
+        reg = pd.read_csv(TABLES / "exposure_by_region.csv").sort_values("pop_any", ascending=False)
+        cent = gpd.GeoDataFrame(hexes[["pop_exposed_any"]], geometry=hexes.centroid, crs=hexes.crs)
+        cent = gpd.sjoin(cent, ctx["regions"], how="inner", predicate="within")
+        for _, r in reg.head(3).iterrows():
+            c = cent[(cent.region == r.region) & (cent.pop_exposed_any > 0)]
+            w = c.pop_exposed_any
+            top.append((r.region.replace("Induatrial", "Industrial"), r.pop_any,
+                        float((c.geometry.x * w).sum() / w.sum()), float((c.geometry.y * w).sum() / w.sum())))
+    else:
+        # sem regiões nomeadas: os 3 hexágonos com mais residentes expostos
+        for i, (_, r) in enumerate(hexes.nlargest(3, "pop_exposed_any").iterrows(), start=1):
+            top.append((f"Hexagon #{i}", r.pop_exposed_any, r.geometry.centroid.x, r.geometry.centroid.y))
+    has_sgb12 = N["sgb12"] is not None
 
-    D = new_board("Hazard exposure · Montes Claros, Brazil")
+    D = new_board(f"Hazard exposure · {CITY}, Brazil")
     y = D.title(0.03, 0.895, "Who lives in\nhazard-prone areas",
-                "Residents of the urban perimeter in buildings on steep slopes, "
-                "flood-prone lowlands or mapped risk sectors.")
+                f"Residents of the {AOI_LABEL} in buildings on steep slopes"
+                + (", flood-prone lowlands or mapped risk sectors." if has_sgb12 else " or flood-prone lowlands."))
     y = D.kpi_big(0.03, y, fmt(N["any"].population), "Residents exposed", "CENSUS 2022 · OPEN BUILDINGS")
     D.kpi_row(0.03, y, "drop", "blue", f"Flood-prone lowlands (HAND ≤ {N['h']} m)", fmt(N["flood"].population))
     D.kpi_row(0.03, y - 0.085, "slope", "orange", f"Slopes ≥ {N['s']}%", fmt(N["slope"].population))
-    D.kpi_row(0.03, y - 0.170, "sector", "purple", "SGB 2012 risk sectors", fmt(N["sgb12"].population))
+    if has_sgb12:
+        D.kpi_row(0.03, y - 0.170, "sector", "purple", "SGB 2012 risk sectors", fmt(N["sgb12"].population))
+    else:
+        D.kpi_row(0.03, y - 0.170, "sector", "purple", "Buildings exposed (any hazard)", fmt(N["any"].buildings))
     D.ring(0.03, y - 0.285, N["any"].population_pct / 100, fmt(N["all"].population),
-           "residents in the urban perimeter (Census 2022); the ring shows the share exposed")
+           f"residents in the {AOI_LABEL} (Census 2022); the ring shows the share exposed")
     D.kpi_row(0.03, y - 0.41, "hex", "green", "Kontur Population vs Census, per hexagon",
               f"r = {N['kv'].pearson_r:.2f}", note=f"total {100 * (N['kv'].total_ratio_kontur_over_census - 1):+.0f}%")
 
@@ -255,32 +340,42 @@ def board_hero(ctx, N):
             sub.plot(ax=ax, color=c, edgecolor="white", linewidth=0.6, zorder=3)
     x0, y0, x1, y1 = ctx["extent"]
     xmid = (x0 + x1) / 2
-    for name, val, cx, cy in top:
-        dx = (vx0 + 2700) - cx if cx < xmid else (vx1 - 2700) - cx
-        dash.callout(ax, cx, cy, name, f"{fmt(val)} exposed", colors[-1], dx=dx, dy=500, w=5000)
+    # balões sempre FORA do desenho do mapa (cidade + hexágonos): ver place_callouts
+    w, h = (5000 if HAS_REGIONS else 3300), 900
+    if True:
+        boxes = place_callouts(D, ax, ctx, hexes, [(cx, cy) for _, _, cx, cy in top], w, h)
+        for (name, val, cx, cy), (bx, by) in zip(top, boxes):
+            dash.callout(ax, cx, cy, name, f"{fmt(val)} exposed", colors[-1], dx=bx - cx, dy=by - cy, w=w, h=h)
 
     yy = D.card(CARD_X, 0.585, CARD_W, 0.325, "Exposed residents per hexagon")
     legend_swatches(D, CARD_X + 0.016, yy, [(c, l, "box") for c, l in zip(colors[::-1], labels[::-1])]
                     + [("white", "none", "box")], step=0.031)
-    legend_swatches(D, CARD_X + 0.115, yy, [(dash.STREAM, "streams", "line"),
-                                            (dash.REGION_LINE, "planning regions", "line"),
-                                            (INK, "urban perimeter", "line")], size=9, step=0.031)
+    legend_swatches(D, CARD_X + 0.115, yy, base_items(short=True), size=9, step=0.031)
     D.fig.text(CARD_X + 0.115, yy - 0.105, "H3 resolution 8\n≈ 0.7 km² per hexagon", fontsize=8.5, color=MUTED,
                va="top", linespacing=1.35, zorder=3)
     yy = D.card(CARD_X, 0.335, CARD_W, 0.225, "Why it matters")
-    D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
-           f"{100 * N['flood'].population / N['any'].population:.0f}% of exposed residents live in flood-prone "
-           f"lowlands along the stream valleys. Exposure concentrates in {top[0][0]}, {top[1][0]} and "
-           f"{top[2][0]}: first candidates for drainage works, early warning and land-use control.", size=9.5)
+    flood_share = 100 * N["flood"].population / N["any"].population
+    if HAS_REGIONS:
+        why = (f"{flood_share:.0f}% of exposed residents live in flood-prone "
+               f"lowlands along the stream valleys. Exposure concentrates in {top[0][0]}, {top[1][0]} and "
+               f"{top[2][0]}: first candidates for drainage works, early warning and land-use control.")
+    else:
+        top3 = 100 * sum(t[1] for t in top) / N["any"].population
+        why = (f"{flood_share:.0f}% of exposed residents live in flood-prone lowlands. The three hexagons "
+               f"marked on the map hold {top3:.0f}% of them: first candidates for drainage works, early warning "
+               "and land-use control.")
+    D.text(CARD_X + 0.014, yy, CARD_W - 0.028, why, size=9.5)
     yy = D.card(CARD_X, 0.075, CARD_W, 0.235, "Method")
     yy = D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
                 "Census 2022 residents spread over Google Open Buildings footprints (dasymetric). "
-                f"Hazards: slope ≥ {N['s']}% and HAND ≤ {N['h']} m (Copernicus GLO-30, 30 m); "
-                "SGB/CPRM 2012 sectors. SIRGAS 2000 / UTM 23S.", size=9, spacing=1.45)
+                f"Hazards: slope ≥ {N['s']}% and HAND ≤ {N['h']} m (Copernicus GLO-30, 30 m)"
+                + ("; SGB/CPRM 2012 sectors. " if has_sgb12 else ". ") + "SIRGAS 2000 / UTM 23S.",
+                size=9, spacing=1.45)
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
            f"Flood-prone = terrain susceptibility, not a flood model. Range across thresholds: "
            f"{fmt(N['sens'].population.min())}–{fmt(N['sens'].population.max())}.", size=8.5, color=MUTED, spacing=1.4)
-    D.footer("Data: IBGE Census 2022 · Google Open Buildings v3 · SGB/CPRM 2012 · " + SRC_BASE, REPO)
+    D.footer("Data: IBGE Census 2022 · Google Open Buildings v3 · " + ("SGB/CPRM 2012 · " if has_sgb12 else "")
+             + SRC_BASE, REPO)
     print("hero:", *D.save(MAPS / "hero_exposure_h3"))
     plt.close(D.fig)
 
@@ -294,15 +389,16 @@ def board_slope(ctx, N, cfg):
     slab = ["0–3 flat", "3–8 gentle", "8–20 moderate", "20–45 strong", "45–75 steep", "> 75 very steep"]
     scol = plt.get_cmap("YlOrBr")(np.linspace(0.06, 0.95, len(slab)))
 
-    D = new_board("Steep slopes · Montes Claros, Brazil")
-    y = D.title(0.03, 0.895, "Steep slopes", "Terrain slope inside the urban perimeter, from a 30 m elevation model.")
+    D = new_board(f"Steep slopes · {CITY}, Brazil")
+    y = D.title(0.03, 0.895, "Steep slopes", f"Terrain slope inside the {AOI_LABEL}, from a 30 m elevation model.")
     y = D.kpi_big(0.03, y, f"{ts[f'area_slope_ge_{s}pct_in_aoi_km2']:.1f} km²", f"Area with slope ≥ {s}%",
                   "COPERNICUS GLO-30")
     D.kpi_row(0.03, y, "people", "orange", f"Residents on slopes ≥ {s}%", fmt(N["slope"].population))
     D.kpi_row(0.03, y - 0.085, "hex", "purple", f"Buildings on slopes ≥ {s}%", fmt(N["slope"].buildings))
-    D.kpi_row(0.03, y - 0.170, "slope", "blue", "Median slope in the perimeter", f"{ts.slope_median_pct_in_aoi:.1f}%")
+    D.kpi_row(0.03, y - 0.170, "slope", "blue", f"Median slope in the {AOI_SHORT}",
+              f"{ts.slope_median_pct_in_aoi:.1f}%")
     D.ring(0.03, y - 0.285, ts[f"area_slope_ge_{s}pct_in_aoi_pct"] / 100,
-           f"{ts[f'area_slope_ge_{s}pct_in_aoi_pct']:.1f}%", f"of the perimeter area has slope ≥ {s}%",
+           f"{ts[f'area_slope_ge_{s}pct_in_aoi_pct']:.1f}%", f"of the {AOI_SHORT} area has slope ≥ {s}%",
            color=OKABE["orange"])
 
     ax, vx0, vx1 = city_map(D, ctx, labels=True)
@@ -315,8 +411,10 @@ def board_slope(ctx, N, cfg):
     yy = D.card(CARD_X, 0.335, CARD_W, 0.225, "Why it matters")
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
            f"Brazilian federal law 6,766/1979 restricts urban subdivision on slopes of {s}% or more. "
-           f"Steep land is concentrated on the western ridge; only {fmt(N['slope'].population)} residents "
-           "live on it, but the 30 m model hides short, steep cuts inside the city.", size=9.5)
+           + NARRATIVE.get("slope_where", "")
+           + (f"only {fmt(N['slope'].population)} residents live on it" if N["slope"].population > 0
+              else "no detected building stands on it")
+           + ", but the 30 m model hides short, steep cuts inside the city.", size=9.5)
     yy = D.card(CARD_X, 0.075, CARD_W, 0.235, "Method")
     yy = D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
                 "Slope from Copernicus GLO-30 (30 m surface model) with Horn's 3×3 method, reprojected to "
@@ -339,7 +437,7 @@ def board_hand(ctx, N, cfg):
     hcol = plt.get_cmap("Blues_r")(np.linspace(0.1, 0.72, 4))
     ha = N["hand_area"]
 
-    D = new_board("Flood-prone lowlands · Montes Claros, Brazil")
+    D = new_board(f"Flood-prone lowlands · {CITY}, Brazil")
     y = D.title(0.03, 0.895, "Flood-prone\nlowlands",
                 "Height above the nearest drainage (HAND): land a few metres above a stream is "
                 "susceptible to flooding.")
@@ -349,7 +447,7 @@ def board_hand(ctx, N, cfg):
     D.kpi_row(0.03, y - 0.170, "drop", "green", "Residents, range for HAND 1–5 m",
               f"{fmt(N['sens'].population.min())}–{fmt(N['sens'].population.max())}")
     D.ring(0.03, y - 0.285, ha.area_pct_of_perimeter / 100, f"{ha.area_pct_of_perimeter:.1f}%",
-           f"of the perimeter area has HAND ≤ {h} m", color=OKABE["blue"])
+           f"of the {AOI_SHORT} area has HAND ≤ {h} m", color=OKABE["blue"])
 
     ax, vx0, vx1 = city_map(D, ctx, labels=True)
     hm = np.where(hand <= 5, hand, np.nan)
@@ -363,12 +461,15 @@ def board_hand(ctx, N, cfg):
     legend_swatches(D, CARD_X + 0.016, yy - 0.185, base_items(), size=8.5, step=0.024)
     yy = D.card(CARD_X, 0.335, CARD_W, 0.225, "Why it matters")
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
-           f"Flood-prone lowlands hold {fmt(N['flood'].population)} residents, almost all of the exposure found in "
-           "this study. They follow the stream valleys that cross the city.", size=9.5)
+           f"Flood-prone lowlands hold {fmt(N['flood'].population)} residents, "
+           + ("almost all of the exposure found in this study. " if N["flood"].population >= 0.9 * N["any"].population
+              else f"{100 * N['flood'].population / N['any'].population:.0f}% of the exposure found in this study. ")
+           + "They follow the stream valleys that cross the city.", size=9.5)
     yy = D.card(CARD_X, 0.075, CARD_W, 0.235, "Method")
     yy = D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
                 f"Copernicus GLO-30 conditioned (fill pits, depressions, flats), D8 flow, streams where drainage "
-                f"area ≥ {acc:g} km² (checked against the Atlas streams), HAND with pysheds. "
+                f"area ≥ {acc:g} km²" + (" (checked against the Atlas streams)" if ctx["has_atlas"] else "")
+                + ", HAND with pysheds. "
                 f"Threshold h = {h} m fixed before validation.", size=9, spacing=1.45)
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
            f"Terrain susceptibility, not a modelled flood extent. Headwaters < {acc:g} km² are missed.",
@@ -393,7 +494,7 @@ def board_hand_vs_sgb(ctx, N, cfg):
     cat[h3m & sgb_hm] = 2
     ccol = [OKABE["orange"], OKABE["sky_blue"], OKABE["green"]]
 
-    D = new_board("Agreement check · Montes Claros, Brazil")
+    D = new_board(f"Agreement check · {CITY}, Brazil")
     y = D.title(0.03, 0.895, "HAND vs the\nofficial chart",
                 f"Flood-prone lowlands (HAND ≤ {h} m) compared with the SGB 2014 susceptibility chart. "
                 "Agreement check, not validation.")
@@ -406,8 +507,7 @@ def board_hand_vs_sgb(ctx, N, cfg):
 
     ax, vx0, vx1 = city_map(D, ctx, labels=False)
     ax.imshow(cat, cmap=ListedColormap(ccol), vmin=-0.5, vmax=2.5, extent=ext, interpolation="nearest", zorder=2)
-    zip_path = cfg["paths"]["sgb_risk_zip"].as_posix()
-    sect = gpd.read_file(f"zip://{zip_path}!Shape/MG_MC_SR_CPRM_atualizado.shp").to_crs(ctx["aoi"].crs)
+    sect = read_sgb_sectors(cfg, ctx["aoi"].crs)
     sect.boundary.plot(ax=ax, color=OKABE["vermillion"], linewidth=1.8, zorder=8)
 
     yy = D.card(CARD_X, 0.585, CARD_W, 0.325, "Inside the urban perimeter")
@@ -438,7 +538,7 @@ def board_kontur(ctx, N):
     dcol = plt.get_cmap(carto.DIVERGING)(np.linspace(0.1, 0.9, 5))
     hexes["dcls"] = pd.cut(hexes.diff_kontur_minus_census, bins=db, labels=False)
 
-    D = new_board("Kontur Population check · Montes Claros, Brazil")
+    D = new_board(f"Kontur Population check · {CITY}, Brazil")
     y = D.title(0.03, 0.895, "Kontur Population\nvs Census 2022",
                 "Population per H3 hexagon (resolution 8): Kontur 2023 release against the 2022 Census "
                 "spread over buildings.")
@@ -477,7 +577,7 @@ def board_kontur(ctx, N):
     a.set_ylabel("Kontur 2023", fontsize=8, color=INK2)
     yy = D.card(CARD_X, 0.075, CARD_W, 0.20, "Method")
     D.text(CARD_X + 0.014, yy, CARD_W - 0.028,
-           f"{int(kv.cells)} hexagons with centre in the perimeter. Census 2022 residents spread over Google "
+           f"{int(kv.cells)} hexagons with centre in the {AOI_SHORT}. Census 2022 residents spread over Google "
            "Open Buildings (confidence ≥ 0.75), summed per H3 r8 cell; Kontur Population Brazil, release "
            "2023-11-01 (CC BY 4.0).", size=8.5, spacing=1.4)
     D.footer("Data: Kontur Population (HDX, CC BY 4.0) · IBGE Census 2022 · Google Open Buildings v3 · "
@@ -489,13 +589,28 @@ def board_kontur(ctx, N):
 # =============================================================================
 def build_context(city: str):
     """Carrega camadas (ctx) e números das tabelas (N). Reusado por 10_one_pager.py."""
+    global TABLES, MAPS, FIGS, CITY, AOI_LABEL, AOI_SHORT, PROJ, SRC_BASE, STREAM_LABEL, HAS_REGIONS, NARRATIVE
     cfg = load_config(city)
     th = cfg["thresholds"]
     conf = th["open_buildings_confidence_main"]
     h, acc, s = th["hand_m_main"], th["stream_threshold_km2_main"], th["slope_pct_legal"]
 
+    out = cfg["paths"]["outputs_p01"]
+    TABLES, MAPS, FIGS = out / "tables", out / "maps", out / "figures"
+    MAPS.mkdir(parents=True, exist_ok=True)
+    FIGS.mkdir(parents=True, exist_ok=True)
+    CITY = cfg["city"]["name"]
+    AOI_LABEL = cfg["aoi"].get("label", "urban area")
+    AOI_SHORT = "perimeter" if "perimeter" in AOI_LABEL else AOI_LABEL
+    PROJ = cfg["project"]["label"]
+    SRC_BASE = cfg["project"]["map_credits"]
+    NARRATIVE = cfg["project"].get("narrative", {})
+    has_atlas = has_layer(cfg, "atlas_streams")
+    STREAM_LABEL = "streams (Atlas Hidrográfico)" if has_atlas else f"streams (derived, ≥ {acc:g} km²)"
+
     aoi = load_aoi(cfg)
-    regions = load_planning_regions(cfg)
+    regions = load_regions(cfg)
+    HAS_REGIONS = regions is not None
     streams = prepare_streams(cfg, aoi)
     sa, mun = study_area_table(cfg, aoi, regions)
     ctx = {
@@ -505,13 +620,21 @@ def build_context(city: str):
         "states": gpd.read_file(cfg["paths"]["brazil_states"]),
         "state_code": cfg["city"]["state_ibge_code"],
         "lonlat": (sa.perimeter_centroid_lon, sa.perimeter_centroid_lat),
-        "hexes": gpd.read_file(PROJECT_DIR / "outputs" / "exposure_h3_r8.gpkg").to_crs(aoi.crs),
+        "hexes": gpd.read_file(out / "exposure_h3_r8.gpkg").to_crs(aoi.crs),
+        "city_key": city, "has_atlas": has_atlas, "has_sgb": has_layer(cfg, "sgb_inundation_2014"),
     }
 
     ex = pd.read_csv(TABLES / "exposure_summary.csv")
     ex = ex[ex.confidence_min == conf]
-    row = lambda hz, par=None: ex[(ex.hazard == hz) & ((ex.parameter == par) if par else True)].iloc[0]
-    hv = pd.read_csv(TABLES / "hand_vs_sgb2014.csv")
+    def row(hz, par=None):
+        """Linha da tabela de exposição; None se o perigo não existe para a cidade (ex.: sem SGB)."""
+        r = ex[(ex.hazard == hz) & ((ex.parameter == par) if par else True)]
+        return r.iloc[0] if len(r) else None
+
+    hv = None
+    if ctx["has_sgb"]:
+        hv = pd.read_csv(TABLES / "hand_vs_sgb2014.csv")
+        hv = hv[(hv.stream_threshold_km2 == acc) & (hv.hand_m == h)].iloc[0]
     ha = pd.read_csv(TABLES / "hand_area_sensitivity.csv")
     N = {
         "h": h, "acc": acc, "s": s,
@@ -521,7 +644,7 @@ def build_context(city: str):
         "ref": row("reference: SGB 2014 inundation"),
         "sens": pd.read_csv(TABLES / "sensitivity_hand.csv"),
         "kv": pd.read_csv(TABLES / "kontur_vs_census_summary.csv").iloc[0],
-        "hv": hv[(hv.stream_threshold_km2 == acc) & (hv.hand_m == h)].iloc[0],
+        "hv": hv,
         "hand_area": ha[(ha.stream_threshold_km2 == acc) & (ha.hand_m == h)].iloc[0],
         "terrain": pd.read_csv(TABLES / "terrain_summary_glo30.csv").iloc[0],
     }
@@ -534,7 +657,8 @@ def main(city: str) -> None:
     board_hero(ctx, N)
     board_slope(ctx, N, cfg)
     board_hand(ctx, N, cfg)
-    board_hand_vs_sgb(ctx, N, cfg)
+    if ctx["has_sgb"]:
+        board_hand_vs_sgb(ctx, N, cfg)
     board_kontur(ctx, N)
 
 

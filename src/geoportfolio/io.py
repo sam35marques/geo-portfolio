@@ -43,7 +43,34 @@ def load_config(city: str = "montes_claros") -> dict:
         cfg = yaml.safe_load(f)
     cfg["paths"] = {k: root / v for k, v in cfg["paths"].items()}
     cfg["paths"]["root"] = root
+    # pasta de saídas do Projeto 1 (tabelas, mapas, figuras, web). Montes Claros
+    # usa a pasta do próprio projeto; outra cidade aponta para a sua no YAML.
+    cfg["paths"].setdefault("outputs_p01", root / "projects" / "01-hazard-exposure-montes-claros" / "outputs")
     return cfg
+
+
+def has_layer(cfg: dict, key: str) -> bool:
+    """True se a camada opcional `key` está no YAML (ex.: atlas_streams, sgb_inundation_2014).
+
+    Camadas locais (Atlas, Regiões de Planejamento, cartas do SGB) não existem
+    para toda cidade; os scripts pulam as etapas que dependem delas.
+    """
+    return key in cfg["paths"]
+
+
+def read_sgb_sectors(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
+    """Setores de risco do SGB/CPRM, lidos de dentro do zip original (data/raw intacto).
+
+    O caminho do shapefile dentro do zip vem do YAML (sources.sgb_risk_shp_in_zip).
+    """
+    zip_path = cfg["paths"]["sgb_risk_zip"].as_posix()
+    inner = cfg["sources"]["sgb_risk_shp_in_zip"]
+    return gpd.read_file(f"zip://{zip_path}!{inner}").to_crs(to_crs or cfg["crs"]["metric"])
+
+
+def load_regions(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame | None:
+    """Unidades de relatório (Regiões de Planejamento) ou None, se a cidade não tiver."""
+    return load_planning_regions(cfg, to_crs) if has_layer(cfg, "planning_regions") else None
 
 
 def download_file(url: str, dest: Path, overwrite: bool = False) -> Path:
@@ -116,6 +143,22 @@ def load_aoi(cfg: dict, to_crs: str | None = None) -> gpd.GeoDataFrame:
         if d:
             geom = geom.buffer(d).buffer(-d)
         aoi = gpd.GeoDataFrame({"name": ["urban perimeter"]}, geometry=[geom], crs=rp.crs)
+    elif source == "census_urban_tracts":
+        # Área urbana = união dos setores censitários 2022 de situação urbana
+        # (CD_SIT em aoi.urban_situation_codes), opcionalmente só nos distritos
+        # listados em aoi.districts (ex.: o distrito-sede). Serve para cidades
+        # sem camada de perímetro urbano; regra igual para qualquer município.
+        code = str(cfg["city"]["ibge_code"])
+        t = gpd.read_file(cfg["paths"]["census_tracts"], where=f"CD_MUN = '{code}'")
+        t = t[t["CD_SIT"].astype(str).isin([str(c) for c in cfg["aoi"]["urban_situation_codes"]])]
+        if cfg["aoi"].get("districts"):
+            t = t[t["CD_DIST"].astype(str).isin([str(d) for d in cfg["aoi"]["districts"]])]
+        t = t.to_crs(cfg["crs"]["metric"])
+        d = cfg["aoi"].get("gap_closing_m", 0) or 0
+        geom = t.union_all()
+        if d:
+            geom = geom.buffer(d).buffer(-d)
+        aoi = gpd.GeoDataFrame({"name": ["urban area (Census 2022 urban tracts)"]}, geometry=[geom], crs=t.crs)
     else:
         raise NotImplementedError(f"Fonte de AOI ainda não implementada: {source}")
 

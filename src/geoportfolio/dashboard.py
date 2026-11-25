@@ -209,9 +209,10 @@ def city_base(ax, aoi, regions, streams, extent, labels=False, label_size=7.5, f
     aoi.plot(ax=ax, color=fill, edgecolor="none", zorder=1)
     if streams is not None and len(streams):
         streams.plot(ax=ax, color=STREAM, linewidth=0.9, zorder=4)
-    regions.boundary.plot(ax=ax, color=REGION_LINE, linewidth=1.0, zorder=5)
+    if regions is not None:   # cidades sem Regiões de Planejamento: só o contorno
+        regions.boundary.plot(ax=ax, color=REGION_LINE, linewidth=1.0, zorder=5)
     aoi.boundary.plot(ax=ax, color=DASH["ink"], linewidth=1.6, zorder=6)
-    if labels:
+    if labels and regions is not None:
         halo = [pe.withStroke(linewidth=2.6, foreground="white")]
         for _, r in regions.iterrows():
             p = r.geometry.representative_point()

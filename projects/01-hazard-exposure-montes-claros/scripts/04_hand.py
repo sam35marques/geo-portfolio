@@ -30,10 +30,9 @@ import rasterio
 from rasterio.features import geometry_mask, rasterize
 
 from geoportfolio import terrain
-from geoportfolio.io import load_aoi, load_config
+from geoportfolio.io import has_layer, load_aoi, load_config, read_sgb_sectors
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
-TABLES = PROJECT_DIR / "outputs" / "tables"
 
 
 def rasterize_classes(gdf, field, mapping, shape, transform):
@@ -49,6 +48,7 @@ def main(city: str) -> None:
     metric = cfg["crs"]["metric"]
     I = cfg["paths"]["interim_p01"]
     cell_km2 = res * res / 1e6
+    TABLES = cfg["paths"]["outputs_p01"] / "tables"
 
     aoi = load_aoi(cfg)
     dem_path = I / "dem_glo30_31983_30m.tif"
@@ -83,6 +83,18 @@ def main(city: str) -> None:
     t_area.to_csv(TABLES / "hand_area_sensitivity.csv", index=False)
     print("\nÁrea com HAND ≤ h dentro do perímetro:")
     print(t_area.pivot(index="hand_m", columns="stream_threshold_km2", values="area_km2").to_string())
+
+    # --- 4-6. Referências do SGB: só se a cidade tiver as cartas no YAML ---------------
+    if has_layer(cfg, "sgb_inundation_2014"):
+        sgb_checks(cfg, hands, slope, inside, shape, transform, cell_km2, TABLES)
+    else:
+        print("\nSem carta de suscetibilidade do SGB no YAML: comparações puladas.")
+
+
+def sgb_checks(cfg, hands, slope, inside, shape, transform, cell_km2, TABLES):
+    """HAND e declividade x carta SGB 2014; checagem dos setores SGB 2012."""
+    th = cfg["thresholds"]
+    metric = cfg["crs"]["metric"]
 
     # --- 4. HAND x SGB 2014 (inundação) --------------------------------------------
     sgb_inund = gpd.read_file(cfg["paths"]["sgb_inundation_2014"]).to_crs(metric)
@@ -128,8 +140,9 @@ def main(city: str) -> None:
     print(t_mm.to_string(index=False))
 
     # --- 6. Setores SGB 2012 (checagem qualitativa) --------------------------------
-    zip_path = cfg["paths"]["sgb_risk_zip"].as_posix()
-    sect = gpd.read_file(f"zip://{zip_path}!Shape/MG_MC_SR_CPRM_atualizado.shp").to_crs(metric)
+    if not has_layer(cfg, "sgb_risk_zip"):
+        return
+    sect = read_sgb_sectors(cfg)
     hmain = hands[th["stream_threshold_km2_main"]]
     rows = []
     for _, s in sect.iterrows():

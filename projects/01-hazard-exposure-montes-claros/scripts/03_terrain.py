@@ -30,7 +30,7 @@ from rasterio.features import geometry_mask, rasterize
 from scipy.ndimage import distance_transform_edt
 
 from geoportfolio import terrain
-from geoportfolio.io import load_aoi, load_config
+from geoportfolio.io import has_layer, load_aoi, load_config
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 
@@ -42,6 +42,8 @@ def main(city: str) -> None:
     res = tcfg["resolution_m"]
     out_dir = cfg["paths"]["interim_p01"]
     out_dir.mkdir(parents=True, exist_ok=True)
+    tables = cfg["paths"]["outputs_p01"] / "tables"
+    tables.mkdir(parents=True, exist_ok=True)
 
     aoi = load_aoi(cfg)
     domain = aoi.buffer(tcfg["domain_buffer_m"])
@@ -76,6 +78,29 @@ def main(city: str) -> None:
     print(f"Acumulação máxima: {acc_km2.max():,.0f} km²")
 
     # --- 4. Limiar de drenagem x Atlas ------------------------------------------
+    # Só para cidades com hidrografia de referência no YAML (paths.atlas_streams).
+    # Sem ela, o limiar fica no valor do YAML e a sensibilidade de 1 e 3 km² é reportada.
+    atlas_len_km = np.nan
+    if has_layer(cfg, "atlas_streams"):
+        atlas_len_km = stream_threshold_check(cfg, aoi, dem, transform, acc_km2, inside, res, tables)
+
+    # resumo do terreno (todo número citado sai de uma tabela)
+    summary = pd.DataFrame([{
+        "dem": "Copernicus GLO-30", "crs": metric, "pixel_m": res,
+        "domain_buffer_m": tcfg["domain_buffer_m"],
+        "slope_median_pct_in_aoi": round(float(np.median(s_in)), 2),
+        "slope_p95_pct_in_aoi": round(float(np.percentile(s_in, 95)), 2),
+        f"area_slope_ge_{thr_slope}pct_in_aoi_pct": round(100 * float(np.mean(s_in >= thr_slope)), 2),
+        f"area_slope_ge_{thr_slope}pct_in_aoi_km2": round(float(np.sum(s_in >= thr_slope)) * res * res / 1e6, 2),
+        "atlas_stream_length_in_aoi_km": round(atlas_len_km, 2),
+    }])
+    summary.to_csv(tables / "terrain_summary_glo30.csv", index=False)
+
+
+def stream_threshold_check(cfg, aoi, dem, transform, acc_km2, inside, res, tables):
+    """Compara a rede derivada (vários limiares) com os córregos de referência."""
+    metric = cfg["crs"]["metric"]
+    tcfg = cfg["terrain"]
     atlas = gpd.read_file(cfg["paths"]["atlas_streams"]).to_crs(metric)
     atlas_in = atlas.clip(aoi)
     atlas_len_km = atlas_in.length.sum() / 1000
@@ -125,23 +150,13 @@ def main(city: str) -> None:
             "tolerance_m": tol,
         })
     tab = pd.DataFrame(rows_out)
-    out_tab = PROJECT_DIR / "outputs" / "tables" / "stream_threshold_vs_atlas.csv"
+    out_tab = tables / "stream_threshold_vs_atlas.csv"
     tab.to_csv(out_tab, index=False)
     print("\nLimiar de drenagem x córregos do Atlas (dentro do perímetro):")
     print(tab.to_string(index=False))
     print(f"-> {out_tab}")
 
-    # resumo do terreno (todo número citado sai de uma tabela)
-    summary = pd.DataFrame([{
-        "dem": "Copernicus GLO-30", "crs": metric, "pixel_m": res,
-        "domain_buffer_m": tcfg["domain_buffer_m"],
-        "slope_median_pct_in_aoi": round(float(np.median(s_in)), 2),
-        "slope_p95_pct_in_aoi": round(float(np.percentile(s_in, 95)), 2),
-        f"area_slope_ge_{thr_slope}pct_in_aoi_pct": round(100 * float(np.mean(s_in >= thr_slope)), 2),
-        f"area_slope_ge_{thr_slope}pct_in_aoi_km2": round(float(np.sum(s_in >= thr_slope)) * res * res / 1e6, 2),
-        "atlas_stream_length_in_aoi_km": round(atlas_len_km, 2),
-    }])
-    summary.to_csv(PROJECT_DIR / "outputs" / "tables" / "terrain_summary_glo30.csv", index=False)
+    return atlas_len_km
 
 
 if __name__ == "__main__":

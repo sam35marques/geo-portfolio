@@ -27,7 +27,6 @@ from geoportfolio import dashboard as dash
 
 SCRIPTS = Path(__file__).resolve().parent
 PROJECT_DIR = SCRIPTS.parent
-OUT = PROJECT_DIR / "outputs"
 
 # 08_figures.py começa com dígito, então não dá para fazer "import 08_figures":
 # carregamos o arquivo pelo caminho.
@@ -38,7 +37,6 @@ _spec.loader.exec_module(fig08)
 A4 = (8.27, 11.69)   # polegadas
 INK, INK2, MUTED = dash.DASH["ink"], dash.DASH["ink2"], dash.DASH["muted"]
 fmt = dash.fmt_int
-URL = "https://sam35marques.github.io/geo-portfolio/projects/hazard-exposure-montes-claros.html"
 
 
 def card(fig, x, y, w, h):
@@ -50,19 +48,24 @@ def card(fig, x, y, w, h):
 
 def main(city: str) -> None:
     cfg, ctx, N, sa, mun = fig08.build_context(city)
+    OUT = cfg["paths"]["outputs_p01"]
+    URL = cfg["project"]["site_url"]
+    CITY, AOI = cfg["city"]["name"], fig08.AOI_LABEL
+    has_sgb12, has_sgb14 = N["sgb12"] is not None, N["hv"] is not None
     plt.rcParams["font.family"] = dash.FONT   # também para o rótulo do localizador
     fig = plt.figure(figsize=A4, facecolor=dash.DASH["bg"])
     F = dash.FONT
 
     # --- cabeçalho -------------------------------------------------------------
-    fig.text(0.06, 0.962, "PROJECT 01 · HAZARD EXPOSURE · MONTES CLAROS, MINAS GERAIS, BRAZIL",
+    fig.text(0.06, 0.962, f"{cfg['project']['label'].upper()} · HAZARD EXPOSURE · {CITY.upper()}, MINAS GERAIS, BRAZIL",
              fontsize=7.5, color=INK2, weight="bold", family=F)
     fig.text(0.06, 0.940, "Who lives in hazard-prone areas?", fontsize=21, color=INK, family=F, va="top",
              weight="semibold")
     share = N["any"].population_pct
     fig.text(0.06, 0.902, textwrap.fill(
         f"About {fmt(round(N['any'].population, -2))} residents ({share:.1f}% of the urban population) live in "
-        f"buildings on flood-prone low ground, on slopes ≥ {N['s']}% or in mapped risk sectors.", 92),
+        f"buildings on flood-prone low ground" + (f", on slopes ≥ {N['s']}% or in mapped risk sectors." if has_sgb12
+                                                  else f" or on slopes ≥ {N['s']}%."), 92),
         fontsize=10, color=INK2, family=F, va="top", linespacing=1.4)
 
     # --- mapa ------------------------------------------------------------------
@@ -84,7 +87,7 @@ def main(city: str) -> None:
     dash.north(ax, vx1 - 1100, y1 - 1100, h=700)
     dash.scalebar(ax, vx1 - 2600, y0 + 600)
     dash.locator(fig, [0.715, 0.70, 0.19, 0.14], ctx["countries"], ctx["states"], ctx["state_code"],
-                 ctx["lonlat"], "Montes Claros")
+                 ctx["lonlat"], CITY)
 
     # legenda à direita do mapa
     fig.text(0.735, 0.665, "Exposed residents\nper H3 hexagon (r8)", fontsize=8.5, color=INK, weight="semibold",
@@ -96,8 +99,8 @@ def main(city: str) -> None:
         fig.text(0.772, y, lab, fontsize=8, color=INK, va="center", family=F, zorder=3)
         y -= 0.021
     y -= 0.008
-    for c, lab, lw in [(dash.STREAM, "streams", 1.0), (dash.REGION_LINE, "planning regions", 1.0),
-                       (INK, "urban perimeter", 1.6)]:
+    for c, lab, kind in fig08.base_items(short=True):
+        lw = 1.6 if c == INK else 1.0
         fig.add_artist(plt.Line2D([0.738, 0.764], [y, y], transform=fig.transFigure, color=c, lw=lw, zorder=3))
         fig.text(0.772, y, lab, fontsize=8, color=INK, va="center", family=F, zorder=3)
         y -= 0.021
@@ -108,12 +111,16 @@ def main(city: str) -> None:
     flood_share = 100 * N["flood"].population / N["any"].population
     kpis = [
         (fmt(N["any"].population), "residents exposed",
-         f"{share:.1f}% of {fmt(N['all'].population)} in the urban perimeter"),
+         f"{share:.1f}% of {fmt(N['all'].population)} in the {AOI}"),
         (f"{flood_share:.0f}%", "of them on flood-prone low ground",
          f"HAND ≤ {N['h']} m above the nearest stream"),
-        (f"{N['hv'].sgb_high_capture_pct:.0f}%", "of SGB 'high' inundation zones",
-         "covered by the HAND zone (agreement, not validation)"),
     ]
+    if has_sgb14:
+        kpis.append((f"{N['hv'].sgb_high_capture_pct:.0f}%", "of SGB 'high' inundation zones",
+                     "covered by the HAND zone (agreement, not validation)"))
+    else:
+        kpis.append((f"r = {N['kv'].pearson_r:.2f}", "Kontur Population vs Census",
+                     "correlation of residents per H3 r8 hexagon (independent check)"))
     for i, (val, lab, note) in enumerate(kpis):
         x = 0.04 + i * 0.31
         card(fig, x, 0.245, 0.30, 0.13)
@@ -128,8 +135,11 @@ def main(city: str) -> None:
     steps = [
         "1. Copernicus GLO-30 (30 m): slope (Horn) and HAND, with streams from a 2 km² contributing area.",
         "2. Census 2022 residents spread over Google Open Buildings v3 footprints (dasymetric, by area).",
-        "3. A building is exposed when its point falls in a hazard zone; totals by region and H3 r8 cell.",
-        f"4. Checked against SGB/CPRM 2014 susceptibility and Kontur Population (r = {N['kv'].pearson_r:.2f}).",
+        "3. A building is exposed when its point falls in a hazard zone; totals by "
+        + ("region and H3 r8 cell." if fig08.HAS_REGIONS else "H3 r8 cell."),
+        (f"4. Checked against SGB/CPRM 2014 susceptibility and Kontur Population (r = {N['kv'].pearson_r:.2f})."
+         if has_sgb14 else
+         f"4. Checked against Kontur Population (r = {N['kv'].pearson_r:.2f}); no official susceptibility chart exists."),
     ]
     fig.text(0.06, 0.190, "\n".join(steps), fontsize=8.2, color=INK2, family=F, va="top", linespacing=1.55)
     s = N["sens"]
@@ -144,7 +154,8 @@ def main(city: str) -> None:
     fig.text(0.06, 0.033, URL, fontsize=8.5, color=carto.OKABE_ITO["blue"], family=F, weight="semibold",
              url=URL)
     fig.text(0.06, 0.014, "Samuel Marques · 2026 · Text and figures CC BY 4.0 · Code MIT · Data: IBGE, Google "
-             "Open Buildings, Copernicus, SGB/CPRM, Kontur, Atlas Hidrográfico de Montes Claros",
+             "Open Buildings, Copernicus" + (", SGB/CPRM" if has_sgb12 else "") + ", Kontur"
+             + (", Atlas Hidrográfico de Montes Claros" if ctx["has_atlas"] else ""),
              fontsize=6.3, color=MUTED, family=F)
 
     OUT.mkdir(parents=True, exist_ok=True)

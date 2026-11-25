@@ -84,6 +84,7 @@ Steep slopes are shown in [`slope_steep.png`](outputs/figures/slope_steep.png).
 - **Stream network.** At 2 km², the derived network has about the same length as the Atlas streams (ratio 0.98). Within 60 m, it finds 63.8% of the Atlas streams (96.3% of canalized reaches, 53.8% of natural reaches). Because the Atlas was used to choose the threshold, it is not an independent validation of the network.
 - **The SGB comparison is agreement, not validation.** The 2014 chart also defines inundation classes from height above drainage, on a different DEM. Agreement is expected in part by construction. The 2012 sectors are only four polygons, so they serve as a qualitative check. The 2012 flood sector in Vila Itatiaia – Santa Rafaela lies at the head of a small stream: only 7.5% of its cells have HAND ≤ 3 m, so the 2 km² network misses it.
 - **Population.** Census tracts are from 2022 and buildings from Open Buildings v3. Population per building assumes that people are spread by footprint area, so it ignores building height and use (commercial and industrial buildings get residents too). In the main run, 7 people could not be allocated (one tract with population and no detected buildings).
+- **Cells without HAND.** One cluster of about 0.6 km² inside the perimeter drains to a closed low point before reaching a stream, so it has no HAND value. Its 941 buildings (2,151 residents, 0.55%) count as not exposed. See [`hand_undefined.csv`](outputs/tables/hand_undefined.csv).
 - **Exposure by representative point.** A building counts as exposed only if its representative point is inside the zone. Buildings that cross the zone edge can be counted either way.
 
 ## Reuse in another city
@@ -95,7 +96,9 @@ Nothing in the code is tied to Montes Claros. Every path, code and threshold com
 3. Set `aoi.source: "ibge_municipality"` if there is no urban perimeter layer.
 4. Run the scripts with `--city <city>`.
 
-The Atlas streams are used only to choose the stream threshold. Without a local reference, keep 2 km² and report the HAND sensitivity table.
+The Atlas streams are used only to choose the stream threshold. Without a local reference, keep 2 km² and report the HAND sensitivity table. Layers that only exist for Montes Claros (Atlas, Planning Regions, SGB charts) are optional: leave them out of the YAML and the steps that use them are skipped.
+
+**Worked example:** the same study for [Janaúba](../01b-hazard-exposure-janauba/) ([`config/janauba.yaml`](../../config/janauba.yaml)), with the study area built from Census 2022 urban tracts.
 
 ## Stack
 
