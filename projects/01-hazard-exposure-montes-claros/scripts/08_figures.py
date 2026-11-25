@@ -4,7 +4,7 @@ Todo número escrito nas figuras é lido das tabelas em outputs/tables/
 (regra do projeto: nada de valores digitados à mão).
 
 Saídas:
-  outputs/maps/hero_exposure_h3.png/.svg       população exposta em H3 r8 (1600×900)
+  outputs/maps/hero_exposure_h3.png/.svg       painel: população exposta em H3 r8 (1600×900)
   outputs/figures/slope_hand.png/.svg          declividade e HAND (1200×800)
   outputs/figures/hand_vs_sgb.png/.svg         concordância HAND × carta SGB 2014
   outputs/figures/kontur_vs_census.png/.svg    dispersão + mapa de diferenças
@@ -27,6 +27,7 @@ from matplotlib.patches import Patch
 from rasterio.features import geometry_mask, rasterize
 
 from geoportfolio import carto
+from geoportfolio import dashboard as dash
 from geoportfolio.io import load_aoi, load_config, load_planning_regions
 
 PROJECT_DIR = Path(__file__).resolve().parents[1]
@@ -95,49 +96,116 @@ def main(city: str) -> None:
     src_main = ("IBGE Census 2022 · Open Buildings v3 · Copernicus GLO-30 · SGB/CPRM · "
                 "Atlas Hidrográfico de Montes Claros · Planning Regions (Leite 2006)")
 
-    # ================= 1. HERO ==========================================================
+    # ================= 1. HERO (painel 16:9) ================================================
     hexes = gpd.read_file(PROJECT_DIR / "outputs" / "exposure_h3_r8.gpkg").to_crs(aoi.crs)
     bins = [0, 50, 200, 500, 1000, np.inf]
     labels = ["1–50", "51–200", "201–500", "501–1,000", "> 1,000"]
     colors = plt.get_cmap(carto.EXPOSURE)(np.linspace(0.15, 0.95, len(labels)))
     hexes["cls"] = pd.cut(hexes.pop_exposed_any, bins=bins, labels=False, include_lowest=False)
 
-    fig, ax, side = carto.new_map(
-        "Where people live in hazard-prone areas — Montes Claros, Brazil",
-        "Residents (Census 2022) in buildings on steep slopes, flood-prone lowlands or mapped risk sectors, per H3 hexagon (res. 8)",
-    )
-    base_layers(ax, hill, extent, regions, streams, aoi)
-    hexes[hexes.cls.isna()].plot(ax=ax, color=carto.NO_DATA_FILL, edgecolor="white", linewidth=0.3, alpha=0.75, zorder=2)
+    # regiões com mais residentes expostos (tabela) e posição dos balões:
+    # centro ponderado pela população exposta dos hexágonos de cada região
+    reg = pd.read_csv(TABLES / "exposure_by_region.csv").sort_values("pop_any", ascending=False)
+    display_name = {"Distrito Induatrial": "Distrito Industrial"}   # grafia corrigida só no rótulo
+    cent = gpd.GeoDataFrame(hexes[["pop_exposed_any"]], geometry=hexes.centroid, crs=hexes.crs)
+    cent = gpd.sjoin(cent, regions, how="inner", predicate="within")
+    top = []
+    for _, r in reg.head(3).iterrows():
+        c = cent[(cent.region == r.region) & (cent.pop_exposed_any > 0)]
+        wts = c.pop_exposed_any
+        top.append((display_name.get(r.region, r.region), r.pop_any,
+                    float((c.geometry.x * wts).sum() / wts.sum()), float((c.geometry.y * wts).sum() / wts.sum())))
+
+    share_flood = 100 * r_flood.population / r_any.population
+    sens_min, sens_max = sens.population.min(), sens.population.max()
+
+    D = dash.Dashboard("Hazard exposure · Montes Claros, Brazil",
+                       "Project 01 · open, reproducible geospatial portfolio",
+                       "CENSUS 2022 · H3 RESOLUTION 8", "Samuel Marques · 2026")
+
+    # --- coluna esquerda: título, número-destaque, indicadores ----------------------------
+    y = D.title(0.03, 0.895, "Who lives in\nhazard-prone areas",
+                "Residents of the urban perimeter in buildings on steep slopes, "
+                "flood-prone lowlands or mapped risk sectors.")
+    y = D.kpi_big(0.03, y, dash.fmt_int(r_any.population), "Residents exposed", "CENSUS 2022 · OPEN BUILDINGS")
+    D.kpi_row(0.03, y, "drop", "blue", f"Flood-prone lowlands (HAND ≤ {h_main} m)", dash.fmt_int(r_flood.population))
+    D.kpi_row(0.03, y - 0.085, "slope", "orange", f"Slopes ≥ {s_thr}%", dash.fmt_int(r_slope.population))
+    D.kpi_row(0.03, y - 0.170, "sector", "purple", "SGB 2012 risk sectors", dash.fmt_int(r_sgb12.population))
+    D.ring(0.03, y - 0.285, r_any.population_pct / 100, dash.fmt_int(r_all.population),
+           "residents in the urban perimeter (Census 2022); the ring shows the share exposed")
+    D.kpi_row(0.03, y - 0.41, "hex", "green", "Kontur Population vs Census, per hexagon",
+              f"r = {kv.pearson_r:.2f}", note=f"total {100 * (kv.total_ratio_kontur_over_census - 1):+.0f}%")
+
+    # --- mapa central ---------------------------------------------------------------------
+    ax = D.fig.add_axes([0.225, 0.075, 0.49, 0.835])
+    ax.axis("off")
+    ax.set_aspect("equal", adjustable="datalim")
+    x0, y0, x1, y1 = aoi.buffer(900).total_bounds
+    dash.soft_shadow(ax, poly, (x0, y0, x1, y1))
+    aoi.plot(ax=ax, color="white", edgecolor="none", zorder=1)
+    hexes[hexes.cls.isna()].plot(ax=ax, color="white", edgecolor="#E4E6F1", linewidth=0.6, zorder=2)
     for k, c in enumerate(colors):
         sub = hexes[hexes.cls == k]
         if len(sub):
-            sub.plot(ax=ax, color=c, edgecolor="white", linewidth=0.3, zorder=2)
-    ax.set_xlim(bounds[0], bounds[2]); ax.set_ylim(bounds[1], bounds[3])
+            sub.plot(ax=ax, color=c, edgecolor="white", linewidth=0.6, zorder=3)
+    regions.boundary.plot(ax=ax, color="#C9CDDC", linewidth=0.5, zorder=4)
+    streams.clip(aoi.buffer(300)).plot(ax=ax, color=carto.WATER, linewidth=0.9, zorder=5)
+    aoi.boundary.plot(ax=ax, color=dash.DASH["ink2"], linewidth=1.0, zorder=6)
+    ax.set_xlim(x0, x1)
+    ax.set_ylim(y0, y1)
+    ax.apply_aspect()
+    vx0, vx1 = ax.get_xlim()   # limites visíveis depois de ajustar a proporção
+    xmid = (x0 + x1) / 2
+    for name, val, cx, cy in top:
+        dx = (vx0 + 2700) - cx if cx < xmid else (vx1 - 2700) - cx   # balão na margem, fora da mancha urbana
+        dash.callout(ax, cx, cy, name, f"{dash.fmt_int(val)} exposed", colors[-1], dx=dx, dy=500, w=5000)
+    dash.north(ax, vx1 - 1300, y1 - 1200)
+    dash.scalebar(ax, vx1 - 2600, y0 + 700)
 
-    # legenda em duas colunas: classes à esquerda, linhas de referência à direita
-    handles = [Patch(facecolor=c, edgecolor="white", label=l) for c, l in zip(colors, labels)]
-    handles += [Patch(facecolor=carto.NO_DATA_FILL, edgecolor="white", label="none"),
-                Line2D([], [], color=carto.WATER, lw=0.8, label="streams"),
-                Line2D([], [], color=carto.LINE, lw=0.6, label="planning regions"),
-                Line2D([], [], color=carto.AOI_EDGE, lw=0.8, label="urban perimeter")]
-    leg = carto.add_legend(side, handles, "Exposed residents per hexagon", loc="upper left",
-                           fontsize=5, bbox_to_anchor=(0, 1), ncol=2)
+    # --- coluna direita: legenda, por que importa, método ------------------------------------
+    cx0, cw = 0.735, 0.24
+    yy = D.card(cx0, 0.645, cw, 0.265, "Exposed residents per hexagon")
+    for c, l in zip(colors[::-1], labels[::-1]):
+        D.fig.add_artist(plt.Rectangle((cx0 + 0.016, yy - 0.016), 0.022, 0.024, transform=D.fig.transFigure,
+                                       fc=c, ec="white", zorder=3))
+        D.fig.text(cx0 + 0.046, yy - 0.004, l, fontsize=9.5, color=dash.DASH["ink"], va="center", zorder=3)
+        yy -= 0.034
+    D.fig.add_artist(plt.Rectangle((cx0 + 0.016, yy - 0.016), 0.022, 0.024, transform=D.fig.transFigure,
+                                   fc="white", ec="#C9CDDC", zorder=3))
+    D.fig.text(cx0 + 0.046, yy - 0.004, "none", fontsize=9.5, color=dash.DASH["ink"], va="center", zorder=3)
+    lx = cx0 + 0.13
+    ly = 0.645 + 0.265 - 0.058
+    for color, lw, lab in [(carto.WATER, 1.6, "streams"), ("#C9CDDC", 1.2, "planning regions"),
+                           (dash.DASH["ink2"], 1.6, "urban perimeter")]:
+        D.fig.add_artist(plt.Line2D([lx, lx + 0.02], [ly - 0.004, ly - 0.004], transform=D.fig.transFigure,
+                                    color=color, lw=lw, zorder=3))
+        D.fig.text(lx + 0.026, ly - 0.004, lab, fontsize=9, color=dash.DASH["ink2"], va="center", zorder=3)
+        ly -= 0.034
+    D.fig.text(lx, ly - 0.006, "H3 resolution 8\n≈ 0.7 km² per hexagon", fontsize=8.5,
+               color=dash.DASH["muted"], va="top", linespacing=1.35, zorder=3)
 
-    sens_min, sens_max = sens.population.min(), sens.population.max()
-    carto.add_text_block(side, [
-        (f"{fmt(r_any.population)} people", 10, "bold"),
-        (f"{r_any.population_pct:.1f}% of the {fmt(r_all.population)} residents of the urban perimeter", 5.5, "normal"),
-        ("", 3, "normal"),
-        (f"Flood-prone lowlands (HAND ≤ {h_main} m): {fmt(r_flood.population)}", 5, "normal"),
-        (f"Slopes ≥ {s_thr}%: {fmt(r_slope.population)}  ·  SGB 2012 sectors: {fmt(r_sgb12.population)}", 5, "normal"),
-        (f"Range across HAND 1–5 m and stream thresholds: {fmt(sens_min)}–{fmt(sens_max)}", 5, "normal"),
-        ("", 3, "normal"),
-        ("Flood-prone = terrain susceptibility from a 30 m DEM, not a modelled flood extent.",
-         4.5, "normal", carto.MUTED),
-    ], y=carto.below(side, leg, pad=0.06), gap=0.3)
-    carto.finish_map(fig, ax, source=src_main, crs_label=CRS_LABEL)
-    print("hero:", *carto.save_figure(fig, MAPS / "hero_exposure_h3"))
-    plt.close(fig)
+    yy = D.card(cx0, 0.375, cw, 0.24, "Why it matters")
+    D.text(cx0 + 0.014, yy, cw - 0.028,
+           f"{share_flood:.0f}% of exposed residents live in flood-prone lowlands along the stream "
+           f"valleys. Exposure concentrates in {top[0][0]}, {top[1][0]} and {top[2][0]}: "
+           "first candidates for drainage works, early warning and land-use control.", size=9.5)
+
+    yy = D.card(cx0, 0.075, cw, 0.27, "Method")
+    yy = D.text(cx0 + 0.014, yy, cw - 0.028,
+                "Census 2022 residents spread over Google Open Buildings footprints (dasymetric). "
+                f"Hazards: slope ≥ {s_thr}% and HAND ≤ {h_main} m from Copernicus GLO-30 (30 m); "
+                "SGB/CPRM 2012 risk sectors. Planning Regions: Decree 3,393/2016. "
+                "SIRGAS 2000 / UTM 23S.", size=9, spacing=1.45)
+    D.text(cx0 + 0.014, yy, cw - 0.028,
+           f"Flood-prone = terrain susceptibility, not a flood model. "
+           f"Range across thresholds: {dash.fmt_int(sens_min)}–{dash.fmt_int(sens_max)}.",
+           size=8.5, color=dash.DASH["muted"], spacing=1.4)
+
+    D.footer("Data: IBGE Census 2022 · Google Open Buildings v3 · Copernicus GLO-30 · SGB/CPRM 2012 · "
+             "Atlas Hidrográfico de Montes Claros (2026) · Planning Regions (Leite 2006; LC 53/2016)",
+             "github.com/sam35marques/geo-portfolio")
+    print("hero:", *D.save(MAPS / "hero_exposure_h3"))
+    plt.close(D.fig)
 
     # ================= 2. SLOPE + HAND ===================================================
     slope, _, ext2 = read_window(I / "slope_pct_glo30.tif", bounds, poly)

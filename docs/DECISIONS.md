@@ -16,6 +16,12 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-25 — Hero map as a 16:9 dashboard  [P01, all projects]
+- Decision: the hero map becomes a dashboard panel (`src/geoportfolio/dashboard.py`): headline number and indicator rows on the left, map in the centre with callouts for the three Planning Regions with most exposed residents, cards on the right (legend, "Why it matters", method), sources in the footer.
+- Reference: layout of the author's SIU panel template (indicator column, centre map, cards, callouts, soft shadow under the perimeter). **Not** reused: the municipal brand, footer and tabs — a public personal portfolio must not look like an official City Hall product (CLAUDE.md: no logos, no municipal material). Kept from the portfolio: H3 r8 cells (Kontur standard), Okabe-Ito / YlOrRd colours, English text and number format.
+- Format: drawn at 16 × 9 in, saved at 100 dpi = 1600 × 900 px with a 300 dpi tag (same pixels), plus SVG. Font: Segoe UI (Inter not installed).
+- Callout positions = exposure-weighted centre of each region's hexagons; region names from the table `exposure_by_region.csv` (one source spelling error fixed only in the label: "Distrito Induatrial").
+
 ## 2026-11-25 — Maps: classes, palettes and what the web map may contain  [P01]
 - Hero map: exposed residents per H3 r8 hexagon in fixed, readable classes (1–50, 51–200, 201–500, 501–1,000, > 1,000; 100 of 178 cells have exposure, max 1,975), sequential YlOrRd; differences Kontur − Census in a diverging PuOr palette (±250 neutral class). Both colour-blind safe.
 - Web map (Folium): contains only aggregates and derived/public layers (H3 hexagons, HAND ≤ 3 m and slope ≥ 30% polygons, SGB 2012 sectors). It does **not** embed the Planning Regions, the urban perimeter or the Atlas streams, because geometries inside an HTML file are effectively redistributed and those files have no redistribution licence. Static maps show them as images, with citation.
