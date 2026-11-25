@@ -16,6 +16,11 @@ Before modelling, each project also records its **analysis frame**: question, un
 
 ---
 
+## 2026-11-25 — Maps: classes, palettes and what the web map may contain  [P01]
+- Hero map: exposed residents per H3 r8 hexagon in fixed, readable classes (1–50, 51–200, 201–500, 501–1,000, > 1,000; 100 of 178 cells have exposure, max 1,975), sequential YlOrRd; differences Kontur − Census in a diverging PuOr palette (±250 neutral class). Both colour-blind safe.
+- Web map (Folium): contains only aggregates and derived/public layers (H3 hexagons, HAND ≤ 3 m and slope ≥ 30% polygons, SGB 2012 sectors). It does **not** embed the Planning Regions, the urban perimeter or the Atlas streams, because geometries inside an HTML file are effectively redistributed and those files have no redistribution licence. Static maps show them as images, with citation.
+- Basemap: OpenStreetMap tiles at reduced opacity (CartoDB tiles now require an API key in this Folium version).
+
 ## 2026-11-24 — Exposure rule = building representative point  [P01]
 - Decision: a building (and its dasymetric population) is exposed when its representative point falls in a hazard cell (30 m rasters) or polygon (SGB sectors). "Any hazard" = slope ≥ 30% or HAND ≤ 3 m (streams ≥ 2 km²) or SGB 2012 sector.
 - Alternatives considered: any footprint overlap (more conservative, inflates large sheds and edges); fraction of footprint area (more precise, harder to explain, fractional building counts).
